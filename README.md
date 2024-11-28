@@ -6,6 +6,8 @@ There is no locking/latching involved in this project except while allocating a 
 
 This project is a sibling project of [MinTXEngine](https://github.com/RohanVDvivedi/MinTXEngine), It serves to provide volatile data storage for the database storage engine built on top of MinTxEngine. It should primarily be used for storing volatile database lock-tables and intermediate query results, and all other stuff that do not need to be persistent like views.
 
+Using this project you will never experience aborts (no WAL-no atomicity/no durability), you will only have crashes, as soon as mmap/malloc or ftruncate fails, thats is the reason you need MinTxEngine.
+
 ## Setup instructions
 **Install dependencies :**
  * [BlockIO](https://github.com/RohanVDvivedi/BlockIO)
