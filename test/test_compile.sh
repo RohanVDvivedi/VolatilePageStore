@@ -1,2 +1,2 @@
-gcc ./test.c -o test.out -lcapp
+gcc ./test.c -o test.out -lvolatilepagestore -lblockio -lserint -lboompar -lcutlery -lpthread
 ./test.out
