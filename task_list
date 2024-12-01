@@ -2,8 +2,6 @@
  * need blockfile mmap util
    * to mmap a page from the disk and munmap it
 
- * need volatile_page_store_stats and volatile_page_store_user_stats similar to min_tx_engine
-
  * initialization ensures that the page_size is always multiple of sysconf(_SC_PAGE_SIZE) and block size of the disk
 
  * page allocation/deallocation is done inside global mutex, using either a free list OR the bitmap like in MinTxEngine
