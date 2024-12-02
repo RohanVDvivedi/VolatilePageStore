@@ -5,17 +5,19 @@
 
 #include<volatile_page_store_stats.h>
 
-#include<pthread.h>
+#include<rwlock.h>
 
 typedef struct volatile_page_store volatile_page_store;
 struct volatile_page_store
 {
 	// you need to acquire manager_lock,
 	/*
-		1. to allocate/deallocate pages
-		2. truncate expand the temp_file
+		hold in exclusive mode if
+			1. to allocate/deallocate pages
+			2. truncate expand the temp_file
+		else you must hold shared lock on it
 	*/
-	pthread_mutex_t manager_lock;
+	rwlock manager_lock;
 
 	block_file temp_file;
 
