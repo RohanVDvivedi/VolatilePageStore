@@ -13,12 +13,20 @@ struct volatile_page_store
 	// you need to acquire manager_lock,
 	/*
 		if
-			1. to allocate/deallocate pages
+			1. to allocate/deallocate pages (even if using free_page_list_head_page_id)
 			2. truncate expand the temp_file
+			3. and during truncation job, which frees all pages from free_page_list_head_page_id, and then discards all the trailing free pages from the file
 	*/
 	pthread_mutex_t manager_lock;
 
 	block_file temp_file;
+
+	// free list of data pages, linked by their page_id slot in the system page header
+	// all the pages present here in this list will still already be marked as allocated in their corresponding free space mapper pages,
+	// but inserting a new one here or removing one needs to be done with manager lock held
+	// this list just serves as a quick way to allocate and deallocate
+	// it must be accessed with manager_lock
+	uint64_t free_page_list_head_page_id;
 
 	uint64_t database_page_count;
 
