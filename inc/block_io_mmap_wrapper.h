@@ -14,6 +14,7 @@ void* block_io_get_page(volatile_page_store* vps, uint64_t page_id);
 void block_io_return_page(volatile_page_store* vps, void* page);
 
 // ftruncates the database to expand it and then sets checksum on it
-void expand_file_with_zero_page(volatile_page_store* vps, uint64_t* page_id);
+// this function must be called with manager lock held
+void* block_io_get_new_page(volatile_page_store* vps, uint64_t* page_id);
 
 #endif
