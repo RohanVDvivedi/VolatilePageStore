@@ -47,9 +47,9 @@ void release_page_for_vs(volatile_page_store* vps, void* page_contents, int free
 		{
 			pthread_mutex_lock(&(vps->manager_lock));
 
-				set_page_id_for_page(page, vps->free_page_list_head_page_id, &(vps->stats));
+				set_page_id_for_page(page, vps->free_pages_list_head_page_id, &(vps->stats));
 
-				vps->free_page_list_head_page_id = page_id;
+				vps->free_pages_list_head_page_id = page_id;
 
 				block_io_return_page(vps, page);
 
@@ -74,9 +74,9 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	{
 		pthread_mutex_lock(&(vps->manager_lock));
 
-			set_page_id_for_page(page, vps->free_page_list_head_page_id, &(vps->stats));
+			set_page_id_for_page(page, vps->free_pages_list_head_page_id, &(vps->stats));
 
-			vps->free_page_list_head_page_id = page_id;
+			vps->free_pages_list_head_page_id = page_id;
 
 			block_io_return_page(vps, page);
 

@@ -26,7 +26,7 @@ struct volatile_page_store
 	// but inserting a new one here or removing one needs to be done with manager lock held
 	// this list just serves as a quick way to allocate and deallocate
 	// it must be accessed with manager_lock
-	uint64_t free_page_list_head_page_id;
+	uint64_t free_pages_list_head_page_id;
 
 	uint64_t active_page_count;
 

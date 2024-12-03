@@ -26,7 +26,7 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 
 	vps->user_stats = get_volatile_page_store_user_stats(&(vps->stats), get_block_size_for_block_file(&(vps->temp_file)));
 
-	vps->free_page_list_head_page_id = vps->user_stats.NULL_PAGE_ID;
+	vps->free_pages_list_head_page_id = vps->user_stats.NULL_PAGE_ID;
 
 	return 1;
 }
