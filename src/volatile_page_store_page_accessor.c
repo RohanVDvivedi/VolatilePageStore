@@ -60,5 +60,26 @@ void release_page_for_vs(volatile_page_store* vps, void* page_contents, int free
 
 void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 {
-	// TODO
+	// page_id must not be a free space mapper page
+	if(is_free_space_mapper_page(page_id, &(vps->stats)))
+	{
+		printf("ISSUEv :: user accessing free space mapper page\n");
+		exit(-1);
+	}
+
+	// get the page
+	void* page = block_io_get_page(vps, page_id);
+
+	// put this page in the head of the free_pages_list
+	{
+		pthread_mutex_lock(&(vps->manager_lock));
+
+			set_page_id_for_page(page, vps->free_page_list_head_page_id, &(vps->stats));
+
+			vps->free_page_list_head_page_id = page_id;
+
+			block_io_return_page(vps, page);
+
+		pthread_mutex_unlock(&(vps->manager_lock));
+	}
 }
