@@ -43,4 +43,6 @@ struct volatile_page_store
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds);
 
+#include<volatile_page_store_page_accessor.h>
+
 #endif
