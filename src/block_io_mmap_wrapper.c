@@ -51,18 +51,18 @@ void block_io_return_page(volatile_page_store* vps, void* page)
 void* block_io_get_new_page(volatile_page_store* vps, uint64_t* page_id)
 {
 	// can not expand beyong max_page_count
-	if(vps->database_page_count == vps->user_stats.max_page_count)
+	if(vps->active_page_count == vps->user_stats.max_page_count)
 	{
 		printf("ISSUEv :: out of available page ids for expansion\n");
 		exit(-1);
 	}
 
 	// initialize new page id
-	(*page_id) = ((vps->database_page_count)++);
+	(*page_id) = ((vps->active_page_count)++);
 
 	// expand the file
 	{
-		uint64_t block_count = (vps->database_page_count) * (vps->stats.page_size);
+		uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size);
 		if(!truncate_block_file(&(vps->temp_file), block_count))
 		{
 			printf("ISSUEv :: could not expand the file\n");

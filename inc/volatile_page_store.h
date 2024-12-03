@@ -28,13 +28,19 @@ struct volatile_page_store
 	// it must be accessed with manager_lock
 	uint64_t free_page_list_head_page_id;
 
-	uint64_t database_page_count;
+	uint64_t active_page_count;
 
 	// stats for internal use
 	volatile_page_store_stats stats;
 
 	// stats to be used by user
 	volatile_page_store_user_stats user_stats;
+
+	// below attributes are use for truncator thread only
+
+	uint64_t truncator_period_in_microseconds;
 };
+
+int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds);
 
 #endif

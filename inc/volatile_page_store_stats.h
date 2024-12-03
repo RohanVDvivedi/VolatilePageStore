@@ -21,4 +21,6 @@ struct volatile_page_store_user_stats
 	uint64_t max_page_count; // user is not allowed to access more than this number of pages in the volatile_page_store
 };
 
+volatile_page_store_user_stats get_volatile_page_store_user_stats(const volatile_page_store_stats* stats, uint32_t temp_file_block_size);
+
 #endif
