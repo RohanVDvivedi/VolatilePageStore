@@ -1,13 +1,8 @@
- * initialization ensures that the page_size is always multiple of sysconf(_SC_PAGE_SIZE) and block size of the disk
-
- * page allocation/deallocation is done inside global mutex, using either a free list OR the bitmap like in MinTxEngine
- * truncater will free all pages from free list, and truncate file if possible, done using holding the same global lock
-
- API
+ complete API
  * void* get_new_page_for_vps(uint64_t* page_id);
- * void* acquire_page_for_vps(uint64_t page_id);
- * void release_page_for_vs(void* page, int free_page);
- * void free_page_for_vps(uint64_t page_id);
+ * page allocation is done inside global mutex, using either a free list OR the bitmap like in MinTxEngine or by extending the temp file
+
+ * truncater will free all pages from free list, and truncate file if possible, done using holding the same global lock
 
 Project description
  * use 1 temp_block_file underneath, no Bufferpool no WALe
