@@ -63,7 +63,7 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	// page_id must not be a free space mapper page
 	if(is_free_space_mapper_page(page_id, &(vps->stats)))
 	{
-		printf("ISSUEv :: user accessing free space mapper page\n");
+		printf("ISSUEv :: user freeing free space mapper page\n");
 		exit(-1);
 	}
 
