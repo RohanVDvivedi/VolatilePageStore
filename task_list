@@ -1,5 +1,8 @@
  * review public api functions
 
+ * initializer function to start truncator job, with predefined period
+ * deinitialize function
+
  * truncater will free all pages from free list, and truncate file if possible, done using holding the same global lock
 
 Project description
