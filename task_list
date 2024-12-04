@@ -1,4 +1,3 @@
- * review public api functions
 
  * initializer function to start truncator job, with predefined period
  * deinitialize function
