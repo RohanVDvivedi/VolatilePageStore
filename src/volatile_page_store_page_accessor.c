@@ -29,7 +29,56 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 
 static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* page_id)
 {
-	// TODO
+	// we are calling a free spacemapper page and group of pages following it an extent for the context of this function
+	const uint64_t data_pages_per_extent = is_valid_bits_count_on_free_space_mapper_page(&(vps->stats));
+	const uint64_t total_pages_per_extent = data_pages_per_extent + 1;
+
+	uint64_t free_space_mapper_page_id = 0;
+	while(free_space_mapper_page_id < vps->active_page_count)
+	{
+		{
+			// get free space mapper page that we interested in
+			void* free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+
+			uint64_t free_space_mapper_bit_index = 0;
+			while(free_space_mapper_bit_index < data_pages_per_extent)
+			{
+				// calculate respective page_id, and ensure that it does not overflow
+				if(will_unsigned_sum_overflow(uint64_t, free_space_mapper_page_id, (free_space_mapper_bit_index + 1)))
+					break;
+				(*page_id) = free_space_mapper_page_id + (free_space_mapper_bit_index + 1);
+				if((*page_id) >= vps->active_page_count)
+					break;
+
+				// if the free_space_mapper_bit_index is set, continue
+				void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
+				if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_index))
+				{
+					free_space_mapper_bit_index++;
+					continue;
+				}
+
+				// else we allocate it, by just setting the bit
+				set_bit(free_space_mapper_page_contents, free_space_mapper_bit_index);
+
+				// release free space mapper page
+				block_io_return_page(vps, free_space_mapper_page);
+
+				// grab the page we just allocated and return
+				return block_io_get_page(vps, (*page_id));
+			}
+
+			// return free space mapper page back using munmap
+			block_io_return_page(vps, free_space_mapper_page);
+		}
+
+		// check for overflow and increment
+		if(will_unsigned_sum_overflow(uint64_t, free_space_mapper_page_id, total_pages_per_extent))
+			break;
+		free_space_mapper_page_id += total_pages_per_extent;
+	}
+
+	return NULL;
 }
 
 static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page_id)
