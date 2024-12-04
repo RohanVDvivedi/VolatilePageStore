@@ -27,6 +27,11 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 	return page;
 }
 
+static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* page_id)
+{
+	// TODO
+}
+
 static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page_id)
 {
 	// if out of pages, fail
@@ -90,6 +95,9 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 			goto EXIT;
 
 		// strategy 2 :: allocate a new one from the free space map
+		page = allocate_from_free_space_map(vps, page_id);
+		if(page != NULL)
+			goto EXIT;
 
 		// strategy 3 :: extend the file and allocate a brand new one
 		page = allocate_by_extending_file(vps, page_id);
