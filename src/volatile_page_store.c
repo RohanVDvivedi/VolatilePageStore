@@ -1,5 +1,7 @@
 #include<volatile_page_store.h>
 
+#include<volatile_page_store_truncator.h>
+
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
 	pthread_mutex_init(&(vps->manager_lock), NULL);
@@ -30,6 +32,15 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 	// initialize and start the truncator
 
 	vps->truncator_period_in_microseconds = truncator_period_in_microseconds;
+	pthread_cond_init(&(vps->wait_for_truncator_period), NULL);
+	pthread_cond_init(&(vps->wait_for_truncator_to_stop), NULL);
+	vps->is_truncator_running = 0;
+	vps->truncator_shutdown_called = 0;
+
+	// start truncator thread
+	initialize_job(&(vps->truncator_job), truncator, vps, NULL, NULL);
+	pthread_t thread_id;
+	execute_job_async(&(vps->truncator_job), &thread_id);
 
 	return 1;
 }
