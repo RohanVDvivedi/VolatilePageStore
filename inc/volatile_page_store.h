@@ -6,6 +6,7 @@
 #include<volatile_page_store_stats.h>
 
 #include<pthread.h>
+#include<job.h>
 
 typedef struct volatile_page_store volatile_page_store;
 struct volatile_page_store
@@ -47,7 +48,7 @@ struct volatile_page_store
 	pthread_cond_t wait_for_truncator_period;
 
 	// call shutdown truncator and wake up wait_for_truncator_period to make the truncator wake up and quit
-	int shutdown_truncator_called;
+	int truncator_shutdown_called;
 
 	// after calling shutdown, you can wait here for the checkpointer to stop
 	int is_truncator_running;

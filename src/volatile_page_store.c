@@ -4,7 +4,6 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 {
 	pthread_mutex_init(&(vps->manager_lock), NULL);
 	vps->active_page_count = 0;
-	vps->truncator_period_in_microseconds = truncator_period_in_microseconds;
 
 	if(page_size % sysconf(_SC_PAGESIZE) != 0) // page_size must be multiple of OS page size
 		return 0;
@@ -27,6 +26,10 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 	vps->user_stats = get_volatile_page_store_user_stats(&(vps->stats), get_block_size_for_block_file(&(vps->temp_file)));
 
 	vps->free_pages_list_head_page_id = vps->user_stats.NULL_PAGE_ID;
+
+	// initialize and start the truncator
+
+	vps->truncator_period_in_microseconds = truncator_period_in_microseconds;
 
 	return 1;
 }
