@@ -1,14 +1,2 @@
-
- * initializer function to start truncator job, with predefined period
- * deinitialize function
-
- * truncater will free all pages from free list, and truncate file if possible, done using holding the same global lock
-
-Project description
- * use 1 temp_block_file underneath, no Bufferpool no WALe
- * no O_DIRECT, no O_SYNC and no O_DSYNC, no flush and no fsync
- * instead use temp_block_file that internally uses O_TMPFILE
- * no latches/no locks provided for pages or frames
- * use mmap to map pages from this blockfile, full use of linux page cache
- * no aborts only crashes will be supported using exit(-1)
- * downgrade and upgrade are no-ops
+ * test
+ * readme
