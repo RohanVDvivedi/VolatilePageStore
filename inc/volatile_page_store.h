@@ -59,4 +59,6 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 
 #include<volatile_page_store_page_accessor.h>
 
+void deinitialize_volatile_page_store(volatile_page_store* vps);
+
 #endif

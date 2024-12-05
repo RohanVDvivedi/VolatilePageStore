@@ -44,3 +44,19 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 
 	return 1;
 }
+
+void deinitialize_volatile_page_store(volatile_page_store* vps)
+{
+	pthread_mutex_lock(&(vps->manager_lock));
+
+	vps->truncator_shutdown_called = 1;
+
+	// wake up truncator and wait for it to stop
+	pthread_cond_signal(&(vps->wait_for_truncator_period));
+	while(vps->is_truncator_running)
+		pthread_cond_wait(&(vps->wait_for_truncator_to_stop), &(vps->manager_lock));
+
+	pthread_mutex_unlock(&(vps->manager_lock));
+
+	close_block_file(&(vps->temp_file));
+}
