@@ -1,2 +1,6 @@
  * test
+   * generate tuples like in MinTxEngine
+   * use sorter to sort them
+   * then print them
+
  * readme
