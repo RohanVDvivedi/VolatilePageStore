@@ -2,6 +2,8 @@
 
 #include<volatile_page_store_truncator.h>
 
+#include<stdio.h>
+
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
 	pthread_mutex_init(&(vps->manager_lock), NULL);
@@ -40,7 +42,12 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 	// start truncator thread
 	initialize_job(&(vps->truncator_job), truncator, vps, NULL, NULL);
 	pthread_t thread_id;
-	execute_job_async(&(vps->truncator_job), &thread_id);
+	int truncator_job_start_error = execute_job_async(&(vps->truncator_job), &thread_id);
+	if(truncator_job_start_error)
+	{
+		printf("ISSUEv :: could not start truncator job\n");
+		exit(-1);
+	}
 
 	return 1;
 }
