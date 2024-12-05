@@ -38,7 +38,20 @@ struct volatile_page_store
 
 	// below attributes are use for truncator thread only
 
+	// job for truncator
+	job truncator_job;
+
 	uint64_t truncator_period_in_microseconds;
+
+	// truncator waits here for its period to elapse
+	pthread_cond_t wait_for_truncator_period;
+
+	// call shutdown truncator and wake up wait_for_truncator_period to make the truncator wake up and quit
+	int shutdown_truncator_called;
+
+	// after calling shutdown, you can wait here for the checkpointer to stop
+	int is_truncator_running;
+	pthread_cond_t wait_for_truncator_to_stop;
 };
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds);
