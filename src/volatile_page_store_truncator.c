@@ -72,6 +72,75 @@ void perform_truncation(volatile_page_store* vps)
 		if(free_space_mapper_page != NULL)
 			block_io_return_page(vps, free_space_mapper_page);
 	}
+
+	if(vps->active_page_count > 0)
+	{
+		uint64_t new_active_page_count = vps->active_page_count;
+
+		uint64_t block_count_per_page = vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file));
+
+		void* free_space_mapper_page = NULL;
+		uint64_t free_space_mapper_page_id;
+		uint64_t page_id;
+
+		while(new_active_page_count > 0)
+		{
+			page_id = new_active_page_count - 1;
+
+			// we can directly truncate a trailing free space mapper page
+			if(is_free_space_mapper_page(page_id, &(vps->stats)))
+			{
+				new_active_page_count--;
+				continue;
+			}
+
+			// grab the free space mapper page and page_id, if not already mmaped
+			if(free_space_mapper_page == NULL)
+			{
+				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
+				free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+			}
+			else
+			{
+				// we need to meddle only if the free_space_mapper_page that is mapped is not the right one
+				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page(page_id, &(vps->stats)))
+				{
+					// unmap the old one and map the new one
+					block_io_return_page(vps, free_space_mapper_page);
+
+					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
+					free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+				}
+			}
+
+			// if the corresponding allocation bit is set, then break out
+			{
+				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page(page_id, &(vps->stats));
+				void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
+				if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos))
+					break;
+			}
+
+			// page at page_id is free, to we can discard it
+			new_active_page_count--;
+			continue;
+		}
+
+		// unmap the free_space_mapper mapper page if any is mmaped
+		if(free_space_mapper_page)
+			block_io_return_page(vps, free_space_mapper_page);
+
+		// truncate only if there is more than 20% of unused space at the end of the database file
+		if(vps->active_page_count - new_active_page_count > (vps->active_page_count * 0.2))
+		{
+			vps->active_page_count = new_active_page_count;
+			if(!truncate_block_file(&(vps->temp_file), (block_count_per_page * new_active_page_count)))
+			{
+				printf("ISSUEv :: unable to truncate temp file\n");
+				exit(-1);
+			}
+		}
+	}
 }
 
 void* truncator(void* vps_v_p)
