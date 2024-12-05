@@ -58,5 +58,9 @@ void deinitialize_volatile_page_store(volatile_page_store* vps)
 
 	pthread_mutex_unlock(&(vps->manager_lock));
 
+	pthread_mutex_destroy(&(vps->manager_lock));
+	pthread_cond_destroy(&(vps->wait_for_truncator_period));
+	pthread_cond_destroy(&(vps->wait_for_truncator_to_stop));
+
 	close_block_file(&(vps->temp_file));
 }
