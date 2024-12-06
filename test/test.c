@@ -34,6 +34,7 @@ void main1()
 	sorter_handle sh = get_new_sorter(&stdef, &pam, &pmm, transaction_id, &abort_error);
 
 	// perform random 100,000 inserts
+	printf("\n\nPERFORMING INSERTS\n\n");
 	for(int i = 0; i < TESTCASE_SIZE; i++)
 	{
 		char record[900];
@@ -46,6 +47,7 @@ void main1()
 	}
 
 	// sort the contents of the sorter
+	printf("\n\nPERFORMING SORTING\n\n");
 	external_sort_merge_sorter(&sh, 3, transaction_id, &abort_error);
 
 	// destroy sorter and extract the sorted values
@@ -53,6 +55,7 @@ void main1()
 	destroy_sorter(&sh, &sorted_data, transaction_id, &abort_error);
 
 	// print all sorted data 
+	printf("\n\nPRINTING RESULTS\n\n");
 	if(sorted_data != pam.pas.NULL_PAGE_ID)
 	{
 		// print them all popping them one after the another
