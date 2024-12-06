@@ -59,11 +59,13 @@ void main1()
 	if(sorted_data != pam.pas.NULL_PAGE_ID)
 	{
 		// print them all popping them one after the another
+		int pop_counter = 0;
 		{
 			linked_page_list_iterator* lpli_p = get_new_linked_page_list_iterator(sorted_data, &(stdef.lpltd), &pam, &pmm, transaction_id, &abort_error);
 
 			while(!is_empty_linked_page_list(lpli_p))
 			{
+				pop_counter++;
 				const void* record = get_tuple_linked_page_list_iterator(lpli_p);
 
 				print_tuple(record, &record_def);
@@ -73,6 +75,8 @@ void main1()
 
 			delete_linked_page_list_iterator(lpli_p, transaction_id, &abort_error);
 		}
+
+		printf("PRINTED %d SORTED TUPLES\n", pop_counter);
 
 		// if sorted_data exists then we also need to destroy the list
 		destroy_linked_page_list(sorted_data, &(stdef.lpltd), &pam, transaction_id, &abort_error);
