@@ -8,7 +8,7 @@
 
 volatile_page_store vps;
 
-#define PAGE_SIZE (16 * 4096)
+#define PAGE_SIZE (4 * 4096)
 #define PAGE_ID_WIDTH 4
 #define TRUNCATOR_PERIOD_US (20 * 1000000)
 
@@ -61,7 +61,7 @@ void main1()
 
 	// sort the contents of the sorter
 	printf("\n\nPERFORMING SORTING\n\n");
-	external_sort_merge_sorter(&sh, 3, transaction_id, &abort_error);
+	external_sort_merge_sorter(&sh, 100, transaction_id, &abort_error);
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
