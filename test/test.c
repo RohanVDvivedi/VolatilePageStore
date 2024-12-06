@@ -15,6 +15,7 @@ volatile_page_store vps;
 #define TESTCASE_SIZE 1000000
 
 #include<sorter.h>
+#include<linked_page_list.h>
 
 const void* transaction_id = NULL;
 int abort_error = 0;
@@ -42,6 +43,36 @@ void main1()
 			printf("failed to insert to sorter\n");
 			exit(-1);
 		}
+	}
+
+	// sort the contents of the sorter
+	external_sort_merge_sorter(&sh, 3, transaction_id, &abort_error);
+
+	// destroy sorter and extract the sorted values
+	uint64_t sorted_data;
+	destroy_sorter(&sh, &sorted_data, transaction_id, &abort_error);
+
+	// print all sorted data 
+	if(sorted_data != pam.pas.NULL_PAGE_ID)
+	{
+		// print them all popping them one after the another
+		{
+			linked_page_list_iterator* lpli_p = get_new_linked_page_list_iterator(sorted_data, &(stdef.lpltd), &pam, &pmm, transaction_id, &abort_error);
+
+			while(!is_empty_linked_page_list(lpli_p))
+			{
+				const void* record = get_tuple_linked_page_list_iterator(lpli_p);
+
+				print_tuple(record, &record_def);
+
+				remove_from_linked_page_list_iterator(lpli_p, GO_NEXT_AFTER_LINKED_PAGE_ITERATOR_OPERATION, transaction_id, &abort_error);
+			}
+
+			delete_linked_page_list_iterator(lpli_p, transaction_id, &abort_error);
+		}
+
+		// if sorted_data exists then we also need to destroy the list
+		destroy_linked_page_list(sorted_data, &(stdef.lpltd), &pam, transaction_id, &abort_error);
 	}
 
 	deinit_sorter_tuple_definitions(&stdef);
