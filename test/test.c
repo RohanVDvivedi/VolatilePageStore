@@ -87,6 +87,64 @@ void main1()
 	deinitialize_tuple_defs();
 }
 
+#include<bplus_tree.h>
+
+void main2()
+{
+	initialize_tuple_defs();
+
+	bplus_tree_tuple_defs bpttd;
+	if(!init_bplus_tree_tuple_definitions(&bpttd, &(pam.pas), &record_def, KEY_POS, CMP_DIR, RECORD_S_KEY_ELEMENT_COUNT))
+	{
+		printf("failed to initialize bplus tree tuple definitions\n");
+		exit(-1);
+	}
+
+	// perform random 100,000 inserts
+	printf("\n\nPERFORMING INSERTS\n\n");
+	uint64_t root_page_id = get_new_bplus_tree(&bpttd, &pam, &pmm, transaction_id, &abort_error);
+	for(int i = 0; i < TESTCASE_SIZE; i++)
+	{
+		char record[900];
+		construct_record(record, rand() % TESTCASE_SIZE, 0, "Rohan Dvivedi");
+		if(!insert_in_bplus_tree(root_page_id, record, &bpttd, &pam, &pmm, transaction_id, &abort_error))
+		{
+			printf("failed to insert to sorter\n");
+			exit(-1);
+		}
+	}
+
+	printf("\n\nPRINTING RESULTS\n\n");
+	{
+		bplus_tree_iterator* bpi = find_in_bplus_tree(root_page_id, NULL, KEY_ELEMENT_COUNT, MIN, 0, READ_LOCK, &bpttd, &pam, NULL, transaction_id, &abort_error);
+
+		int counter = 0;
+		const void* curr_tuple = get_tuple_bplus_tree_iterator(bpi);
+		while(curr_tuple != NULL)
+		{
+			counter++;
+
+			print_tuple(curr_tuple, &record_def);
+
+			if(!next_bplus_tree_iterator(bpi, transaction_id, &abort_error))
+				break;
+
+			curr_tuple = get_tuple_bplus_tree_iterator(bpi);
+		}
+
+		printf("PRINTED %d SORTED TUPLES\n", counter);
+
+		delete_bplus_tree_iterator(bpi, transaction_id, &abort_error);
+	}
+
+	// destroy the bplus tree
+	destroy_bplus_tree(root_page_id, &bpttd, &pam, transaction_id, &abort_error);
+
+	deinit_bplus_tree_tuple_definitions(&bpttd);
+
+	deinitialize_tuple_defs();
+}
+
 int main()
 {
 	if(!initialize_volatile_page_store(&vps, ".", PAGE_SIZE, PAGE_ID_WIDTH, TRUNCATOR_PERIOD_US))
