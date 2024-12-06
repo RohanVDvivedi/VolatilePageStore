@@ -30,8 +30,8 @@ int main()
 	// seed random number generator
 	srand(time(NULL));
 
-	sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
 	main1();
+	//sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
 
 	printf("total pages used = %"PRIu64"\n", vps.active_page_count);
 
