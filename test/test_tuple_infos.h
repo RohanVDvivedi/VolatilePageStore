@@ -15,8 +15,8 @@ compare_direction CMP_DIR[2] = {ASC, ASC};
 
 void initialize_tuple_defs()
 {
-	record_type_info = malloc(sizeof_tuple_data_type_info(5));
-	initialize_tuple_data_type_info(record_type_info, "record", 0, 900, 5);
+	record_type_info = malloc(sizeof_tuple_data_type_info(1));
+	initialize_tuple_data_type_info(record_type_info, "record", 0, 900, 1);
 
 	strcpy(record_type_info->containees[0].field_name, "num");
 	record_type_info->containees[0].type_info = UINT_NON_NULLABLE[8];
@@ -38,21 +38,7 @@ void initialize_tuple_defs()
 
 	initialize_tuple_def(&record_def, record_type_info);
 
-	key_type_info = malloc(sizeof_tuple_data_type_info(2));
-	initialize_tuple_data_type_info(key_type_info, "key", 0, 900, 2);
-
-	strcpy(key_type_info->containees[0].field_name, "num");
-	key_type_info->containees[0].type_info = record_type_info->containees[0].type_info;
-
-	strcpy(key_type_info->containees[1].field_name, "num_in_words");
-	key_type_info->containees[1].type_info = record_type_info->containees[2].type_info;
-
-	initialize_tuple_def(&key_def, key_type_info);
-
 	print_tuple_def(&record_def);
-	printf("\n\n");
-
-	print_tuple_def(&key_def);
 	printf("\n\n");
 }
 
@@ -143,73 +129,8 @@ void construct_record(void* buffer, uint64_t num, int order, char* value)
 		set_element_in_tuple(&record_def, STATIC_POSITION(4), buffer, &(user_value){.string_value = value, .string_size = strlen(value)}, UINT32_MAX);
 }
 
-int validate_record(const void* buffer)
-{
-	int reason = 0;
-
-	uint64_t num = get_value_from_element_from_tuple(&record_def, STATIC_POSITION(0), buffer).uint_value;
-
-	int order = get_value_from_element_from_tuple(&record_def, STATIC_POSITION(1), buffer).int_value;
-
-	uint16_t o = find_order(num, order);
-	{
-		char t1[1000];
-		num_in_words(t1, o);
-		const char* t2 = get_value_from_element_from_tuple(&record_def, STATIC_POSITION(2), buffer).string_value;
-		if(strlen(t1) != get_value_from_element_from_tuple(&record_def, STATIC_POSITION(2), buffer).string_size) {
-			reason = -1;
-			goto INVALID;
-		}
-		if(strncmp(t1, t2, strlen(t1)))  {
-			reason = -2;
-			goto INVALID;
-		}
-	}
-
-	uint32_t index = 0;
-	uint32_t size = get_element_count_for_element_from_tuple(&record_def, STATIC_POSITION(3), buffer);
-	while(num)
-	{
-		uint8_t d = num % 10;
-		if(index >= size) {
-			reason = -3;
-			goto INVALID;
-		}
-		if(d != get_value_from_element_from_tuple(&record_def, STATIC_POSITION(3,index), buffer).uint_value) {
-			reason = -4;
-			goto INVALID;
-		}
-		index++;
-		num /= 10;
-	}
-
-	if(index < get_element_count_for_element_from_tuple(&record_def, STATIC_POSITION(3), buffer)) {
-		reason = -5;
-		goto INVALID;
-	}
-
-	return 1;
-
-	INVALID :;
-	print_tuple(buffer, &record_def);
-	printf("is in valid for reason = %d\n", reason);
-	return 0;
-}
-
-void construct_key(void* buffer, uint64_t num, int order)
-{
-	init_tuple(&key_def, buffer);
-
-	set_element_in_tuple(&key_def, STATIC_POSITION(0), buffer, &(user_value){.uint_value = num}, UINT32_MAX);
-
-	uint16_t o = find_order(num, order);
-	char temp[100];
-	num_in_words(temp, o);
-	set_element_in_tuple(&key_def, STATIC_POSITION(1), buffer, &(user_value){.string_value = temp, .string_size = strlen(temp)}, UINT32_MAX);
-}
 
 void deinitialize_tuple_defs()
 {
-	free(key_type_info);
 	free(record_type_info);
 }
