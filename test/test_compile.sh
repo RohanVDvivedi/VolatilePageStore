@@ -1,1 +1,1 @@
-gcc ./test.c -o test.out -lvolatilepagestore -lblockio -lserint -lboompar -lcutlery -lpthread
+gcc ./test.c -o test.out -ltupleindexer -lvolatilepagestore -lblockio -lserint -lboompar -lcutlery -lpthread
