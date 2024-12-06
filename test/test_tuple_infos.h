@@ -6,9 +6,6 @@ data_type_info value_string_type_info;
 data_type_info* record_type_info;
 tuple_def record_def;
 
-data_type_info* key_type_info;
-tuple_def key_def;
-
 #define RECORD_S_KEY_ELEMENT_COUNT 2
 positional_accessor KEY_POS[2] = {STATIC_POSITION(0), STATIC_POSITION(2)};
 compare_direction CMP_DIR[2] = {ASC, ASC};
