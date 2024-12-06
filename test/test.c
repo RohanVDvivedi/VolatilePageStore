@@ -8,7 +8,7 @@
 
 volatile_page_store vps;
 
-#define PAGE_SIZE 4096
+#define PAGE_SIZE (16 * 4096)
 #define PAGE_ID_WIDTH 4
 #define TRUNCATOR_PERIOD_US (20 * 1000000)
 
