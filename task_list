@@ -1,6 +1,4 @@
  * test
-   * generate tuples like in MinTxEngine
-   * use sorter to sort them
-   * then print them
+   * ensure that there are no mmap leaks
 
  * readme
