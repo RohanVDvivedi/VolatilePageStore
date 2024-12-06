@@ -103,6 +103,7 @@ void main2()
 	// perform random 100,000 inserts
 	printf("\n\nPERFORMING INSERTS\n\n");
 	uint64_t root_page_id = get_new_bplus_tree(&bpttd, &pam, &pmm, transaction_id, &abort_error);
+	printf("root of the sorter bplus tree = %"PRIu64"\n", root_page_id);
 	for(int i = 0; i < TESTCASE_SIZE; i++)
 	{
 		char record[900];
