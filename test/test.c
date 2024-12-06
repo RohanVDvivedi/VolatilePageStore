@@ -14,6 +14,8 @@ volatile_page_store vps;
 
 #define TESTCASE_SIZE 1000000
 
+#define PRINT_TUPLE
+
 uint32_t inputs[TESTCASE_SIZE];
 void generate_random_inputs()
 {
@@ -79,7 +81,9 @@ void main1()
 				pop_counter++;
 				const void* record = get_tuple_linked_page_list_iterator(lpli_p);
 
+#ifdef PRINT_TUPLE
 				print_tuple(record, &record_def);
+#endif
 
 				remove_from_linked_page_list_iterator(lpli_p, GO_NEXT_AFTER_LINKED_PAGE_ITERATOR_OPERATION, transaction_id, &abort_error);
 			}
@@ -136,7 +140,9 @@ void main2()
 		{
 			counter++;
 
+#ifdef PRINT_TUPLE
 			print_tuple(curr_tuple, &record_def);
+#endif
 
 			if(!next_bplus_tree_iterator(bpi, transaction_id, &abort_error))
 				break;
