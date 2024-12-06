@@ -188,7 +188,7 @@ void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	return get_page_contents_for_page(page, page_id, &(vps->stats));
 }
 
-void release_page_for_vs(volatile_page_store* vps, void* page_contents, int free_page)
+void release_page_for_vps(volatile_page_store* vps, void* page_contents, int free_page)
 {
 	// get page from the page contents
 	void* page = page_contents - get_system_header_size_for_data_pages(&(vps->stats));
