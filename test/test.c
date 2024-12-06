@@ -14,11 +14,22 @@ volatile_page_store vps;
 
 #define TESTCASE_SIZE 1000000
 
-#include<sorter.h>
-#include<linked_page_list.h>
+uint32_t inputs[TESTCASE_SIZE];
+void generate_random_inputs()
+{
+	for(uint32_t i = 0; i < TESTCASE_SIZE; i++)
+		inputs[i] = i;
+	for(uint32_t i = 0; i < TESTCASE_SIZE; i++)
+		memory_swap(inputs + (((uint32_t)rand())  % TESTCASE_SIZE), inputs + (((uint32_t)rand()) % TESTCASE_SIZE), sizeof(uint32_t));
+	/*for(uint32_t i = 0; i < TESTCASE_SIZE; i++)
+		printf("%u\n", inputs[i]);*/
+}
 
 const void* transaction_id = NULL;
 int abort_error = 0;
+
+#include<sorter.h>
+#include<linked_page_list.h>
 
 void main1()
 {
@@ -38,7 +49,7 @@ void main1()
 	for(int i = 0; i < TESTCASE_SIZE; i++)
 	{
 		char record[900];
-		construct_record(record, rand() % TESTCASE_SIZE, 0, "Rohan Dvivedi");
+		construct_record(record, inputs[i], 0, "Rohan Dvivedi");
 		if(!insert_in_sorter(&sh, record, transaction_id, &abort_error))
 		{
 			printf("failed to insert to sorter\n");
@@ -107,7 +118,7 @@ void main2()
 	for(int i = 0; i < TESTCASE_SIZE; i++)
 	{
 		char record[900];
-		construct_record(record, rand() % TESTCASE_SIZE, 0, "Rohan Dvivedi");
+		construct_record(record, inputs[i], 0, "Rohan Dvivedi");
 		if(!insert_in_bplus_tree(root_page_id, record, &bpttd, &pam, &pmm, transaction_id, &abort_error))
 		{
 			printf("failed to insert to sorter bplus tree\n");
@@ -158,9 +169,10 @@ int main()
 
 	// seed random number generator
 	srand(time(NULL));
+	generate_random_inputs();
 
-	//main1();
-	main2();
+	main1();
+	//main2();
 	//sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
 
 	printf("total pages used = %"PRIu64"\n", vps.active_page_count);
