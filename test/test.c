@@ -109,7 +109,7 @@ void main2()
 		construct_record(record, rand() % TESTCASE_SIZE, 0, "Rohan Dvivedi");
 		if(!insert_in_bplus_tree(root_page_id, record, &bpttd, &pam, &pmm, transaction_id, &abort_error))
 		{
-			printf("failed to insert to sorter\n");
+			printf("failed to insert to sorter bplus tree\n");
 			exit(-1);
 		}
 	}
@@ -158,7 +158,8 @@ int main()
 	// seed random number generator
 	srand(time(NULL));
 
-	main1();
+	//main1();
+	main2();
 	//sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
 
 	printf("total pages used = %"PRIu64"\n", vps.active_page_count);
