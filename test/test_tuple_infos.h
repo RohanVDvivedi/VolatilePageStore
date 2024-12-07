@@ -6,9 +6,11 @@ data_type_info value_string_type_info;
 data_type_info* record_type_info;
 tuple_def record_def;
 
+// test with 5,2 for 60 byte varibale length tuples
+// OR 1,1 for 64-bit integral records
 #define RECORD_ELEMENT_COUNT 5
-
 #define RECORD_S_KEY_ELEMENT_COUNT 2
+
 positional_accessor KEY_POS[2] = {STATIC_POSITION(0), STATIC_POSITION(2)};
 compare_direction CMP_DIR[2] = {ASC, ASC};
 
