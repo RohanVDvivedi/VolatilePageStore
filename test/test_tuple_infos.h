@@ -6,32 +6,56 @@ data_type_info value_string_type_info;
 data_type_info* record_type_info;
 tuple_def record_def;
 
+#define RECORD_ELEMENT_COUNT 5
+
 #define RECORD_S_KEY_ELEMENT_COUNT 2
 positional_accessor KEY_POS[2] = {STATIC_POSITION(0), STATIC_POSITION(2)};
 compare_direction CMP_DIR[2] = {ASC, ASC};
 
 void initialize_tuple_defs()
 {
-	record_type_info = malloc(sizeof_tuple_data_type_info(5));
-	initialize_tuple_data_type_info(record_type_info, "record", 0, 900, 5);
+	record_type_info = malloc(sizeof_tuple_data_type_info(RECORD_ELEMENT_COUNT));
+	initialize_tuple_data_type_info(record_type_info, "record", 0, 900, RECORD_ELEMENT_COUNT);
 
-	strcpy(record_type_info->containees[0].field_name, "num");
-	record_type_info->containees[0].type_info = UINT_NON_NULLABLE[8];
+	int index = 0;
 
-	strcpy(record_type_info->containees[1].field_name, "order");
-	record_type_info->containees[1].type_info = INT_NON_NULLABLE[1];
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		strcpy(record_type_info->containees[index].field_name, "num");
+		record_type_info->containees[index].type_info = UINT_NON_NULLABLE[8];
+		index++;
+	}
 
-	num_in_words_type_info = get_variable_length_string_type("num_in_words", 70);
-	strcpy(record_type_info->containees[2].field_name, "num_in_words");
-	record_type_info->containees[2].type_info = &num_in_words_type_info;
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		strcpy(record_type_info->containees[index].field_name, "order");
+		record_type_info->containees[index].type_info = INT_NON_NULLABLE[1];
+		index++;
+	}
 
-	digits_type_info = get_variable_element_count_array_type("digits", 16, UINT_NON_NULLABLE[1]);
-	strcpy(record_type_info->containees[3].field_name, "digits");
-	record_type_info->containees[3].type_info = &digits_type_info;
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		num_in_words_type_info = get_variable_length_string_type("num_in_words", 70);
+		strcpy(record_type_info->containees[index].field_name, "num_in_words");
+		record_type_info->containees[index].type_info = &num_in_words_type_info;
+		index++;
+	}
 
-	value_string_type_info = get_variable_length_string_type("value_in_string", 100);
-	strcpy(record_type_info->containees[4].field_name, "value_in_string");
-	record_type_info->containees[4].type_info = &value_string_type_info;
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		digits_type_info = get_variable_element_count_array_type("digits", 16, UINT_NON_NULLABLE[1]);
+		strcpy(record_type_info->containees[index].field_name, "digits");
+		record_type_info->containees[index].type_info = &digits_type_info;
+		index++;
+	}
+
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		value_string_type_info = get_variable_length_string_type("value_in_string", 100);
+		strcpy(record_type_info->containees[index].field_name, "value_in_string");
+		record_type_info->containees[index].type_info = &value_string_type_info;
+		index++;
+	}
 
 	initialize_tuple_def(&record_def, record_type_info);
 
@@ -99,31 +123,53 @@ void construct_record(void* buffer, uint64_t num, int order, char* value)
 {
 	init_tuple(&record_def, buffer);
 
-	set_element_in_tuple(&record_def, STATIC_POSITION(0), buffer, &(user_value){.uint_value = num}, UINT32_MAX);
+	int index = 0;
 
-	uint16_t o = find_order(num, order);
-	set_element_in_tuple(&record_def, STATIC_POSITION(1), buffer, &(user_value){.int_value = order}, UINT32_MAX);
-
-	char temp[100];
-	num_in_words(temp, o);
-	set_element_in_tuple(&record_def, STATIC_POSITION(2), buffer, &(user_value){.string_value = temp, .string_size = strlen(temp)}, UINT32_MAX);
-
-	set_element_in_tuple(&record_def, STATIC_POSITION(3), buffer, EMPTY_USER_VALUE, UINT32_MAX);
-	uint32_t size = 0;
-	while(num > 0)
+	if(index < RECORD_ELEMENT_COUNT)
 	{
-		uint8_t d = num % 10;
-		if(!expand_element_count_for_element_in_tuple(&record_def, STATIC_POSITION(3), buffer, size, 1, UINT32_MAX))
-			break;
-		size++;
-		set_element_in_tuple(&record_def, STATIC_POSITION(3,(size-1)), buffer, &(user_value){.uint_value = d}, UINT32_MAX);
-		num = num / 10;
+		set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, &(user_value){.uint_value = num}, UINT32_MAX);
+		index++;
 	}
 
-	if(value == NULL)
-		set_element_in_tuple(&record_def, STATIC_POSITION(4), buffer, NULL_USER_VALUE, UINT32_MAX);
-	else
-		set_element_in_tuple(&record_def, STATIC_POSITION(4), buffer, &(user_value){.string_value = value, .string_size = strlen(value)}, UINT32_MAX);
+	uint16_t o = find_order(num, order);
+	if(index  < RECORD_ELEMENT_COUNT)
+	{
+		set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, &(user_value){.int_value = order}, UINT32_MAX);
+		index++;
+	}
+
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		char temp[100];
+		num_in_words(temp, o);
+		set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, &(user_value){.string_value = temp, .string_size = strlen(temp)}, UINT32_MAX);\
+		index++;
+	}
+
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, EMPTY_USER_VALUE, UINT32_MAX);
+		uint32_t size = 0;
+		while(num > 0)
+		{
+			uint8_t d = num % 10;
+			if(!expand_element_count_for_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, size, 1, UINT32_MAX))
+				break;
+			size++;
+			set_element_in_tuple(&record_def, STATIC_POSITION(index,(size-1)), buffer, &(user_value){.uint_value = d}, UINT32_MAX);
+			num = num / 10;
+		}
+		index++;
+	}
+
+	if(index < RECORD_ELEMENT_COUNT)
+	{
+		if(value == NULL)
+			set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, NULL_USER_VALUE, UINT32_MAX);
+		else
+			set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, &(user_value){.string_value = value, .string_size = strlen(value)}, UINT32_MAX);
+		index++;
+	}
 }
 
 
