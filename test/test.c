@@ -14,7 +14,7 @@ volatile_page_store vps;
 
 #define TESTCASE_SIZE 1000000
 
-//#define PRINT_TUPLE
+#define PRINT_TUPLE
 
 uint32_t inputs[TESTCASE_SIZE];
 void generate_random_inputs()
