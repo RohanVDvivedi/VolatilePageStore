@@ -76,7 +76,7 @@ void main1()
 		{
 			linked_page_list_iterator* lpli_p = get_new_linked_page_list_iterator(sorted_data, &(stdef.lpltd), &pam, &pmm, transaction_id, &abort_error);
 
-			while(!is_empty_linked_page_list(lpli_p))
+			while(1)
 			{
 				counter++;
 				const void* record = get_tuple_linked_page_list_iterator(lpli_p);
@@ -85,7 +85,12 @@ void main1()
 				print_tuple(record, &record_def);
 #endif
 
-				remove_from_linked_page_list_iterator(lpli_p, GO_NEXT_AFTER_LINKED_PAGE_ITERATOR_OPERATION, transaction_id, &abort_error);
+				// if the record is at tail, break out
+				if(is_at_tail_tuple_linked_page_list_iterator(lpli_p))
+					break;
+
+				if(!next_linked_page_list_iterator(lpli_p, transaction_id, &abort_error))
+					break;
 			}
 
 			delete_linked_page_list_iterator(lpli_p, transaction_id, &abort_error);
