@@ -24,14 +24,14 @@ void initialize_tuple_defs()
 	if(index < RECORD_ELEMENT_COUNT)
 	{
 		strcpy(record_type_info->containees[index].field_name, "num");
-		record_type_info->containees[index].type_info = UINT_NON_NULLABLE[8];
+		record_type_info->containees[index].al.type_info = UINT_NON_NULLABLE[8];
 		index++;
 	}
 
 	if(index < RECORD_ELEMENT_COUNT)
 	{
 		strcpy(record_type_info->containees[index].field_name, "order");
-		record_type_info->containees[index].type_info = INT_NON_NULLABLE[1];
+		record_type_info->containees[index].al.type_info = INT_NON_NULLABLE[1];
 		index++;
 	}
 
@@ -39,7 +39,7 @@ void initialize_tuple_defs()
 	{
 		num_in_words_type_info = get_variable_length_string_type("num_in_words", 70);
 		strcpy(record_type_info->containees[index].field_name, "num_in_words");
-		record_type_info->containees[index].type_info = &num_in_words_type_info;
+		record_type_info->containees[index].al.type_info = &num_in_words_type_info;
 		index++;
 	}
 
@@ -47,7 +47,7 @@ void initialize_tuple_defs()
 	{
 		digits_type_info = get_variable_element_count_array_type("digits", 16, UINT_NON_NULLABLE[1]);
 		strcpy(record_type_info->containees[index].field_name, "digits");
-		record_type_info->containees[index].type_info = &digits_type_info;
+		record_type_info->containees[index].al.type_info = &digits_type_info;
 		index++;
 	}
 
@@ -55,7 +55,7 @@ void initialize_tuple_defs()
 	{
 		value_string_type_info = get_variable_length_string_type("value_in_string", 100);
 		strcpy(record_type_info->containees[index].field_name, "value_in_string");
-		record_type_info->containees[index].type_info = &value_string_type_info;
+		record_type_info->containees[index].al.type_info = &value_string_type_info;
 		index++;
 	}
 
