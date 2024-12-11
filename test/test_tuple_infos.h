@@ -152,15 +152,15 @@ void construct_record(void* buffer, uint64_t num, int order, char* value)
 	{
 		set_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, EMPTY_USER_VALUE, UINT32_MAX);
 		uint32_t size = 0;
+		uint32_t digits[64];
 		while(num > 0)
 		{
-			uint8_t d = num % 10;
-			if(!expand_element_count_for_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, size, 1, UINT32_MAX))
-				break;
-			size++;
-			set_element_in_tuple(&record_def, STATIC_POSITION(index,(size-1)), buffer, &(user_value){.uint_value = d}, UINT32_MAX);
+			digits[size++] = num % 10;
 			num = num / 10;
 		}
+		expand_element_count_for_element_in_tuple(&record_def, STATIC_POSITION(index), buffer, 0, size, UINT32_MAX);
+		for(uint32_t i = 0; i < size; i++)
+			set_element_in_tuple(&record_def, STATIC_POSITION(index,i), buffer, &(user_value){.uint_value = digits[i]}, UINT32_MAX);
 		index++;
 	}
 
