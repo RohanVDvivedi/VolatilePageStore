@@ -79,7 +79,7 @@ void init_pam_for_vps(volatile_page_store* vps)
 		.pas = (page_access_specs){},
 		.context = vps,
 	};
-	if(!initialize_page_access_specs(&(pam.pas), vps->user_stats.page_id_width, vps->user_stats.page_size, vps->user_stats.NULL_PAGE_ID, 0))
+	if(!initialize_page_access_specs(&(pam.pas), vps->user_stats.page_id_width, vps->user_stats.page_size, vps->user_stats.NULL_PAGE_ID))
 		exit(-1);
 }
 
