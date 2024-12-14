@@ -180,14 +180,11 @@ void main3()
 	qsort(inputs, TESTCASE_SIZE, sizeof(inputs[0]), compare_t);
 
 	printf("\n\nPRINTING RESULTS\n\n");
-	int counter = 0;
 	for(uint32_t i = 0; i < TESTCASE_SIZE; i++)
 	{
 #ifdef PRINT_TUPLE
 			printf("%"PRIu32"\n", inputs[i]);
 #endif
-
-		counter++;
 	}
 }
 
@@ -220,14 +217,11 @@ void main4()
 		, 0, TESTCASE_SIZE-1, &simple_comparator(compare_t));
 
 	printf("\n\nPRINTING RESULTS\n\n");
-	int counter = 0;
 	for(uint32_t i = 0; i < TESTCASE_SIZE; i++)
 	{
 #ifdef PRINT_TUPLE
 			printf("%"PRIu32"\n", inputs[i]);
 #endif
-
-		counter++;
 	}
 }
 
