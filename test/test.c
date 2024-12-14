@@ -191,6 +191,46 @@ void main3()
 	}
 }
 
+#include<index_accessed_search_sort.h>
+
+const void* getter(const void* ds_p, cy_uint index)
+{
+	return ((const uint32_t*)ds_p) + index;
+}
+
+int swapper(void* ds_p, cy_uint i1, cy_uint i2)
+{
+	uint32_t* ds = ds_p;
+	uint32_t x = ds[i1];
+	ds[i1] = ds[i2];
+	ds[i2] = x;
+	return 1;
+}
+
+cy_uint get_element_count(const void* ds_p)
+{
+	return TESTCASE_SIZE;
+}
+
+void main4()
+{
+	// sort the contents of the sorter
+	printf("\n\nPERFORMING SORTING\n\n");
+	quick_sort_iai(&(index_accessed_interface){.ds_p = inputs, .get_element = getter, .swap_elements = swapper, .get_element_count = get_element_count}
+		, 0, TESTCASE_SIZE-1, &simple_comparator(compare_t));
+
+	printf("\n\nPRINTING RESULTS\n\n");
+	int counter = 0;
+	for(uint32_t i = 0; i < TESTCASE_SIZE; i++)
+	{
+#ifdef PRINT_TUPLE
+			printf("%"PRIu32"\n", inputs[i]);
+#endif
+
+		counter++;
+	}
+}
+
 int main()
 {
 	if(!initialize_volatile_page_store(&vps, ".", PAGE_SIZE, PAGE_ID_WIDTH, TRUNCATOR_PERIOD_US))
@@ -205,9 +245,10 @@ int main()
 	srand(time(NULL));
 	generate_random_inputs();
 
-	main1();
+	//main1();
 	//main2();
 	//main3();
+	main4();
 	//sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
 
 	printf("total pages used = %"PRIu64"\n", vps.active_page_count);
