@@ -239,10 +239,10 @@ int main()
 	srand(time(NULL));
 	generate_random_inputs();
 
-	//main1();
+	main1();
 	//main2();
 	//main3();
-	main4();
+	//main4();
 	//sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
 
 	printf("total pages used = %"PRIu64"\n", vps.active_page_count);
