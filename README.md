@@ -27,7 +27,7 @@ Using this project you will never experience aborts (no WAL-no atomicity/no dura
  * ***Once you have installed from source, you may discard the build by*** `make clean`
 
 ## Using The library
- * add `-lvolatilepagestore -lblockio -lserint -lboompar -lcutlery -lpthread` linker flag, while compiling your application
+ * add `-lvolatilepagestore -lblockio -lboompar -lcutlery -lpthread` linker flag, while compiling your application
  * do not forget to include appropriate public api headers as and when needed. this includes
    * `#include<volatile_page_store.h>`
 
