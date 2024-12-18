@@ -1,8 +1,6 @@
 #include<block_io.h>
 #include<block_io_mmap_wrapper.h>
 
-#include<system_page_header_util.h>
-
 #include<sys/mman.h>
 
 #include<stdlib.h>
@@ -25,21 +23,11 @@ void* block_io_get_page(volatile_page_store* vps, uint64_t page_id)
 		exit(-1);
 	}
 
-	// validate checksum
-	if(!validate_page_checksum(page, &(vps->stats)))
-	{
-		printf("ISSUEv :: checksum vaildation failed\n");
-		exit(-1);
-	}
-
 	return page;
 }
 
 void block_io_return_page(volatile_page_store* vps, void* page)
 {
-	// before returning recalcuate the checksum, the page could have been modified
-	recalculate_page_checksum(page, &(vps->stats));
-
 	// munmap, if fails crash
 	if(munmap(page, vps->stats.page_size))
 	{
