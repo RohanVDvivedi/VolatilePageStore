@@ -6,24 +6,10 @@
 #include<volatile_page_store_stats.h>
 
 /*
-	system header consists of three things
-	checksum - 32 bits/ 4 bytes wide on all pages, checksum of all the bytes on the page, except the first 4 bytes, which is the checksum itself
+	system header consists of only 1 thing
 	page_id  - as wide as page_id_width on all data pages
              - it is not present on the free space bitmap pages
 */
-
-/*
-	checksums are used only while read and writing data from-to disk, (update checksum on page while writng to disk and validate it while reading from disk)
-	the checksums functions here must only be called while reading/writing data to-from disk
-	we only protect you against disk corruption and never against main-memory corruption
-	if you experience main-memory corruption you are on your own
-*/
-
-// recalculates 32 bit page checksum and puts it on the page at designated location
-uint32_t recalculate_page_checksum(void* page, const volatile_page_store_stats* stats);
-
-// returns true if validation succeeds
-int validate_page_checksum(const void* page, const volatile_page_store_stats* stats);
 
 int is_free_space_mapper_page(uint64_t page_id, const volatile_page_store_stats* stats);
 
