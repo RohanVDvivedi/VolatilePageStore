@@ -1,3 +1,60 @@
+ * implement mmaped_file_pool to mmap pages on demand and store their mapping of page_id to frame in a struct
+ struct mmaped_file_pool
+ {
+    blockfile* file;
+
+    int has_internal_lock : 1;
+    union
+    {
+      pthread_mutex_t* external_lock;
+      pthread_mutex_t  internal_lock;
+    };
+
+    // hashtable => page_id (uint64_t) -> frame descriptor
+    hashmap page_id_to_frame_desc;
+
+    // hashtable => frame (void*) -> frame descriptor
+    hashmap frame_ptr_to_frame_desc;
+
+    // linkedlist of all frame_descs that are unreferenced, i.e. reference_counter = 0
+    linkedlist unreferenced_frame_descs_lru_lists;
+ };
+ struct frame_desc
+ {
+    struct frame_desc_mapping
+    {
+      // page id of a valid frame
+      uint64_t page_id;
+
+      // memory contents of a valid frame pointed to by page_id
+      void* frame;
+
+      // this frame_desc exists in unreferenced_frame_descs_lru_lists only if its reference_counter is 0
+      uint64_t reference_counter;
+
+      // -------------------------------------
+      // --------- embedded nodes ------------
+      // -------------------------------------
+
+      bstnode embed_node_page_id_to_frame_desc;
+
+      bstnode embed_node_frame_ptr_to_frame_desc;
+
+      llnode embed_node_lru_lists;
+
+    } map;
+ };
+ * API
+  * below functions acquire global lock only if internal
+  * mmap is done without MAP_POPULATE
+ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id);
+ int release_page(mmaped_file_pool* mfp, void* page);
+ uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame);
+ void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp);
+
+ int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, blockfile* file, uint64_t hashmaps_size);
+ void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp);
+
  * test
    * ensure that there are no mmap leaks
 
