@@ -54,6 +54,7 @@
 
  int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, blockfile* file, uint64_t hashmaps_size);
  void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp);
+  * on deinitialization print the count of still referenced frames
 
  * use the above functionality to replace the block_io_mmap_wrapper calls
  * after every truncator function before you truncate the actual file, call discard_all_unreferenced_frame_descs()
