@@ -50,7 +50,7 @@ void* block_io_get_new_page(volatile_page_store* vps, uint64_t* page_id)
 
 	// expand the file
 	{
-		uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size);
+		uint64_t block_count = (vps->active_page_count / get_block_size_for_block_file(&(vps->temp_file))) * (vps->stats.page_size);
 		if(!truncate_block_file(&(vps->temp_file), block_count))
 		{
 			printf("ISSUEv :: could not expand the file\n");
