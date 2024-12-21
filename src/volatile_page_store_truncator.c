@@ -1,7 +1,5 @@
 #include<volatile_page_store_truncator.h>
 
-#include<block_io_mmap_wrapper.h>
-
 #include<system_page_header_util.h>
 
 #include<bitmap.h>
