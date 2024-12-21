@@ -1,4 +1,3 @@
- * review mmaped file pool
  * use the above functionality to replace the block_io_mmap_wrapper calls
  * after every truncator function before you truncate the actual file, call discard_all_unreferenced_frame_descs()
 
