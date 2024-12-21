@@ -19,10 +19,10 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 	(*page_id) = vps->free_pages_list_head_page_id;
 
 	// get the page
-	void* page = block_io_get_page(vps, (*page_id));
+	void* page = acquire_page(&(vps->pool), (*page_id));
 
 	// remove page from the head of the free_pages_list
-	vps->free_pages_list_head_page_id = get_page_id_for_page(page, &(vps->stats));
+	vps->free_pages_list_head_page_id = deserialize_uint64(page, vps->stats.page_id_width);
 
 	return page;
 }
