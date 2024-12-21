@@ -76,7 +76,23 @@ static frame_desc* find_frame_desc_by_frame_ptr(mmaped_file_pool* mfp, void* fra
 
 static void discard_all_unreferenced_frame_descs_UNSAFE(mmaped_file_pool* mfp)
 {
-	// TODO
+	while(!is_empty_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists)))
+	{
+		// get head to process and remove it from lru list
+		frame_desc* fd = (frame_desc*) get_head_of_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists));
+		remove_head_from_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists));
+
+		remove_frame_desc(mfp, fd);
+
+		// munmap, if fails crash
+		if(munmap(fd->frame, mfp->page_size))
+		{
+			printf("ISSUEv :: munmap failed\n");
+			exit(-1);
+		}
+
+		free(fd);
+	}
 }
 
 void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
