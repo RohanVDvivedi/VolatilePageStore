@@ -26,4 +26,6 @@ struct frame_desc
 	llnode embed_node_lru_lists;
 };
 
+void initialize_empty_frame_desc(frame_desc* fd);
+
 #endif
