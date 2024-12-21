@@ -13,7 +13,7 @@ volatile_page_store_user_stats get_volatile_page_store_user_stats(const volatile
 		max_page_count = min(max_page_count, UINT64_C(1) << (CHAR_BIT * stats->page_id_width));
 
 	return (volatile_page_store_user_stats){
-		.page_size = get_page_content_size_for_data_pages(stats),
+		.page_size = stats->page_size,
 		.page_id_width = stats->page_id_width,
 		.NULL_PAGE_ID = 0,
 		.max_page_count = max_page_count,

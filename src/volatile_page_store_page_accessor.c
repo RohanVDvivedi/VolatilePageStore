@@ -1,6 +1,6 @@
 #include<volatile_page_store_page_accessor.h>
 
-#include<block_io_mmap_wrapper.h>
+#include<mmaped_file_pool.h>
 
 #include<system_page_header_util.h>
 
@@ -19,10 +19,10 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 	(*page_id) = vps->free_pages_list_head_page_id;
 
 	// get the page
-	void* page = block_io_get_page(vps, (*page_id));
+	void* page = acquire_page(&(vps->pool), (*page_id));
 
 	// remove page from the head of the free_pages_list
-	vps->free_pages_list_head_page_id = get_page_id_for_page(page, &(vps->stats));
+	vps->free_pages_list_head_page_id = deserialize_uint64(page, vps->stats.page_id_width);
 
 	return page;
 }
@@ -38,7 +38,7 @@ static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* pa
 	{
 		{
 			// get free space mapper page that we interested in
-			void* free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+			void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 
 			uint64_t free_space_mapper_bit_index = 0;
 			while(free_space_mapper_bit_index < data_pages_per_extent)
@@ -51,25 +51,24 @@ static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* pa
 					break;
 
 				// if the free_space_mapper_bit_index is set, continue
-				void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
-				if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_index))
+				if(get_bit(free_space_mapper_page, free_space_mapper_bit_index))
 				{
 					free_space_mapper_bit_index++;
 					continue;
 				}
 
 				// else we allocate it, by just setting the bit
-				set_bit(free_space_mapper_page_contents, free_space_mapper_bit_index);
+				set_bit(free_space_mapper_page, free_space_mapper_bit_index);
 
 				// release free space mapper page
-				block_io_return_page(vps, free_space_mapper_page);
+				release_page(&(vps->pool), free_space_mapper_page);
 
 				// grab the page we just allocated and return
-				return block_io_get_page(vps, (*page_id));
+				return acquire_page(&(vps->pool), (*page_id));
 			}
 
 			// return free space mapper page back using munmap
-			block_io_return_page(vps, free_space_mapper_page);
+			release_page(&(vps->pool), free_space_mapper_page);
 		}
 
 		// check for overflow and increment
@@ -98,9 +97,20 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 
 		// first grab latch on the free space mapper page
 		free_space_mapper_page_id = get_is_valid_bit_page_id_for_page((*page_id), &(vps->stats));
-		free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 
-		page = block_io_get_new_page(vps, page_id);
+		(*page_id) = ((vps->active_page_count)++);
+		// expand the file
+		{
+			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
+			if(!truncate_block_file(&(vps->temp_file), block_count))
+			{
+				printf("ISSUEv :: could not expand the file\n");
+				exit(-1);
+			}
+		}
+
+		page = acquire_page(&(vps->pool), *(page_id));
 	}
 	else // if next new page is a free space mapper page, then create 2 instead of 1
 	{
@@ -108,25 +118,36 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 		if(vps->user_stats.max_page_count - vps->active_page_count < 2)
 			return NULL;
 
-		free_space_mapper_page = block_io_get_new_page(vps, &free_space_mapper_page_id);
+		free_space_mapper_page_id = ((vps->active_page_count)++);
+		(*page_id) = ((vps->active_page_count)++);
+		// expand the file
+		{
+			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
+			if(!truncate_block_file(&(vps->temp_file), block_count))
+			{
+				printf("ISSUEv :: could not expand the file\n");
+				exit(-1);
+			}
+		}
 
-		page = block_io_get_new_page(vps, page_id);
+		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
+		memory_set(free_space_mapper_page, 0, vps->stats.page_size);
+		page = acquire_page(&(vps->pool), (*page_id));
 	}
 
 	// perform the actual allocation
 	{
 		uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page((*page_id), &(vps->stats));
-		void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
-		if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos) != 0) // this may never happen, we are just ensuring that the page being allocated is free
+		if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos) != 0) // this may never happen, we are just ensuring that the page being allocated is free
 		{
 			printf("ISSUEv :: bug in page allocation or new page initialization, page attempting to be allocated is not marked free\n");
 			exit(-1);
 		}
-		set_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos);
+		set_bit(free_space_mapper_page, free_space_mapper_bit_pos);
 	}
 
 	// return free space mapper page back using munmap
-	block_io_return_page(vps, free_space_mapper_page);
+	release_page(&(vps->pool), free_space_mapper_page);
 
 	return page;
 }
@@ -135,7 +156,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 {
 	void* page = NULL;
 
-	pthread_mutex_lock(&(vps->manager_lock));
+	pthread_mutex_lock(&(vps->global_lock));
 
 	{
 		// strategy 1 :: allocate form free list
@@ -160,13 +181,9 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 		printf("ISSUEv :: could not allocate new page for the user\n");
 		exit(-1);
 	}
-	pthread_mutex_unlock(&(vps->manager_lock));
+	pthread_mutex_unlock(&(vps->global_lock));
 
-	// write page_id on the page, so we do not have to remember this mapping
-	set_page_id_for_page(page, (*page_id), &(vps->stats));
-
-	// return the page contents for this page
-	return get_page_contents_for_page(page, (*page_id), &(vps->stats));
+	return page;
 }
 
 void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
@@ -178,41 +195,49 @@ void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 		exit(-1);
 	}
 
-	// get the page
-	void* page = block_io_get_page(vps, page_id);
+	pthread_mutex_lock(&(vps->global_lock));
 
-	// write page_id on the page, so we do not have to remember this mapping
-	set_page_id_for_page(page, page_id, &(vps->stats));
+		if(page_id >= vps->active_page_count)
+		{
+			printf("ISSUEv :: user accessing an out of bounds page_id\n");
+			exit(-1);
+		}
 
-	// return the page contents for this page
-	return get_page_contents_for_page(page, page_id, &(vps->stats));
+		// get the page
+		void* page = acquire_page(&(vps->pool), page_id);
+
+	pthread_mutex_unlock(&(vps->global_lock));
+
+	return page;
 }
 
-void release_page_for_vps(volatile_page_store* vps, void* page_contents, int free_page)
+void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 {
-	// get page from the page contents
-	void* page = page_contents - get_system_header_size_for_data_pages(&(vps->stats));
+	pthread_mutex_lock(&(vps->global_lock));
 
 	if(!free_page)
-		block_io_return_page(vps, page);
+		release_page(&(vps->pool), page);
 	else
 	{
 		// grab page id of the page
-		uint64_t page_id = get_page_id_for_page(page, &(vps->stats));
+		uint64_t page_id = get_page_id_for_frame(&(vps->pool), page);
+		if(page_id == UINT64_MAX)
+		{
+			printf("ISSUEv :: page to be released was never acquired\n");
+			exit(-1);
+		}
 
 		// put this page in the head of the free_pages_list
 		{
-			pthread_mutex_lock(&(vps->manager_lock));
+			// link this page into the free_pages_list
+			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
+			vps->free_pages_list_head_page_id = page_id;
 
-				set_page_id_for_page(page, vps->free_pages_list_head_page_id, &(vps->stats));
-
-				vps->free_pages_list_head_page_id = page_id;
-
-				block_io_return_page(vps, page);
-
-			pthread_mutex_unlock(&(vps->manager_lock));
+			release_page(&(vps->pool), page);
 		}
 	}
+
+	pthread_mutex_unlock(&(vps->global_lock));
 }
 
 void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
@@ -225,18 +250,18 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	}
 
 	// get the page
-	void* page = block_io_get_page(vps, page_id);
+	void* page = acquire_page(&(vps->pool), page_id);
 
 	// put this page in the head of the free_pages_list
 	{
-		pthread_mutex_lock(&(vps->manager_lock));
+		pthread_mutex_lock(&(vps->global_lock));
 
-			set_page_id_for_page(page, vps->free_pages_list_head_page_id, &(vps->stats));
-
+			// link this page into the free_pages_list
+			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
 			vps->free_pages_list_head_page_id = page_id;
 
-			block_io_return_page(vps, page);
+			release_page(&(vps->pool), page);
 
-		pthread_mutex_unlock(&(vps->manager_lock));
+		pthread_mutex_unlock(&(vps->global_lock));
 	}
 }

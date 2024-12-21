@@ -1,7 +1,5 @@
 #include<volatile_page_store_truncator.h>
 
-#include<block_io_mmap_wrapper.h>
-
 #include<system_page_header_util.h>
 
 #include<bitmap.h>
@@ -12,11 +10,12 @@
 #include<pthread.h>
 
 #include<volatile_page_store.h>
+#include<mmaped_file_pool.h>
 
 void perform_truncation(volatile_page_store* vps)
 {
 	{
-		// presering the free_space_mapper_page
+		// preserving the free_space_mapper_page
 		uint64_t free_space_mapper_page_id;
 		void* free_space_mapper_page = NULL;
 
@@ -25,22 +24,19 @@ void perform_truncation(volatile_page_store* vps)
 		{
 			// grab the head's page_id and page
 			uint64_t page_id = vps->free_pages_list_head_page_id;
-			void* page = block_io_get_page(vps, page_id);
+			void* page = acquire_page(&(vps->pool), page_id);
 
 			// update free_pages_list_head_page_id, effectively popping head
-			vps->free_pages_list_head_page_id = get_page_id_for_page(page, &(vps->stats));
-
-			// write page_id on the page, so we do not have to remember this mapping
-			set_page_id_for_page(page, page_id, &(vps->stats));
+			vps->free_pages_list_head_page_id = deserialize_uint64(page, vps->stats.page_id_width);
 
 			// return page back to OS
-			block_io_return_page(vps, page);
+			release_page(&(vps->pool), page);
 
 			// grab the free space mapper page and page_id, if not already mmaped
 			if(free_space_mapper_page == NULL)
 			{
 				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
-				free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+				free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 			}
 			else
 			{
@@ -48,29 +44,28 @@ void perform_truncation(volatile_page_store* vps)
 				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page(page_id, &(vps->stats)))
 				{
 					// unmap the old one and map the new one
-					block_io_return_page(vps, free_space_mapper_page);
+					release_page(&(vps->pool), free_space_mapper_page);
 
 					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
-					free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+					free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 				}
 			}
 
 			// mark the page_id as free in free space map
 			{
 				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page(page_id, &(vps->stats));
-				void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
-				if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos) != 1) // this may never happen, we are just ensuring that the page being freed is indeed allocated
+				if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos) != 1) // this may never happen, we are just ensuring that the page being freed is indeed allocated
 				{
 					printf("ISSUEv :: bug in page being freed from free pages list, before truncation, page in free pages list is not marked allocated\n");
 					exit(-1);
 				}
-				reset_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos);
+				reset_bit(free_space_mapper_page, free_space_mapper_bit_pos);
 			}
 		}
 
 		// if any free space mapper page is mmaped release it
 		if(free_space_mapper_page != NULL)
-			block_io_return_page(vps, free_space_mapper_page);
+			release_page(&(vps->pool), free_space_mapper_page);
 	}
 
 	if(vps->active_page_count > 0)
@@ -98,7 +93,7 @@ void perform_truncation(volatile_page_store* vps)
 			if(free_space_mapper_page == NULL)
 			{
 				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
-				free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+				free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 			}
 			else
 			{
@@ -106,18 +101,17 @@ void perform_truncation(volatile_page_store* vps)
 				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page(page_id, &(vps->stats)))
 				{
 					// unmap the old one and map the new one
-					block_io_return_page(vps, free_space_mapper_page);
+					release_page(&(vps->pool), free_space_mapper_page);
 
 					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
-					free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+					free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 				}
 			}
 
 			// if the corresponding allocation bit is set, then break out
 			{
 				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page(page_id, &(vps->stats));
-				void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
-				if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos))
+				if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos))
 					break;
 			}
 
@@ -128,11 +122,14 @@ void perform_truncation(volatile_page_store* vps)
 
 		// unmap the free_space_mapper mapper page if any is mmaped
 		if(free_space_mapper_page)
-			block_io_return_page(vps, free_space_mapper_page);
+			release_page(&(vps->pool), free_space_mapper_page);
 
 		// truncate only if there is more than 20% of unused space at the end of the database file
 		if(vps->active_page_count - new_active_page_count > (vps->active_page_count * 0.2))
 		{
+			// before you shorten the file make sure that all free pages (which for sure are unreferenced) are unmaped
+			discard_all_unreferenced_frame_descs(&(vps->pool));
+
 			vps->active_page_count = new_active_page_count;
 			if(!truncate_block_file(&(vps->temp_file), (block_count_per_page * new_active_page_count)))
 			{
@@ -147,13 +144,13 @@ void* truncator(void* vps_v_p)
 {
 	volatile_page_store* vps = vps_v_p;
 
-	pthread_mutex_lock(&(vps->manager_lock));
+	pthread_mutex_lock(&(vps->global_lock));
 	vps->is_truncator_running = 1;
-	pthread_mutex_unlock(&(vps->manager_lock));
+	pthread_mutex_unlock(&(vps->global_lock));
 
 	while(1)
 	{
-		pthread_mutex_lock(&(vps->manager_lock));
+		pthread_mutex_lock(&(vps->global_lock));
 
 		while(!vps->truncator_shutdown_called)
 		{
@@ -163,26 +160,26 @@ void* truncator(void* vps_v_p)
 			struct timespec stop_at = {.tv_sec = now.tv_sec + diff.tv_sec, .tv_nsec = now.tv_nsec + diff.tv_nsec};
 			stop_at.tv_sec += stop_at.tv_nsec / 1000000000LL;
 			stop_at.tv_nsec = stop_at.tv_nsec % 1000000000LL;
-			if(ETIMEDOUT == pthread_cond_timedwait(&(vps->wait_for_truncator_period), &(vps->manager_lock), &stop_at))
+			if(ETIMEDOUT == pthread_cond_timedwait(&(vps->wait_for_truncator_period), &(vps->global_lock), &stop_at))
 				break;
 		}
 
 		if(vps->truncator_shutdown_called)
 		{
-			pthread_mutex_unlock(&(vps->manager_lock));
+			pthread_mutex_unlock(&(vps->global_lock));
 			break;
 		}
 
 		// perform truncation
 		perform_truncation(vps);
 
-		pthread_mutex_unlock(&(vps->manager_lock));
+		pthread_mutex_unlock(&(vps->global_lock));
 	}
 
-	pthread_mutex_lock(&(vps->manager_lock));
+	pthread_mutex_lock(&(vps->global_lock));
 	vps->is_truncator_running = 0;
 	pthread_cond_broadcast(&(vps->wait_for_truncator_to_stop));
-	pthread_mutex_unlock(&(vps->manager_lock));
+	pthread_mutex_unlock(&(vps->global_lock));
 
 	return NULL;
 }
