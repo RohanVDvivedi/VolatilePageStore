@@ -1,8 +1,9 @@
+#include<block_io.h>
 #include<mmaped_file_pool.h>
 
 #include<frame_desc.h>
 
-int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, blockfile* file, uint64_t page_size, uint64_t hashmaps_bucket_count)
+int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, block_file* file, uint64_t page_size, uint64_t hashmaps_bucket_count)
 {
 	if(hashmaps_bucket_count == 0)
 		hashmaps_bucket_count = 128;
@@ -39,12 +40,86 @@ int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external
 	initialize_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), offsetof(frame_desc, embed_node_unreferenced_lru_list));
 }
 
-void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id);
+static pthread_mutex_t* get_mmaped_file_pool_lock(mmaped_file_pool* mfp)
+{
+	if(mfp->has_internal_lock)
+		return &(mfp->internal_lock);
+	return mfp->external_lock;
+}
 
-int release_page(mmaped_file_pool* mfp, void* page);
+static int insert_frame_desc(mmaped_file_pool* mfp, frame_desc* fd)
+{
+	return insert_in_hashmap(&(mfp->page_id_to_frame_desc), fd) && insert_in_hashmap(&(mfp->frame_ptr_to_frame_desc), fd);
+}
 
-uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame);
+static int remove_frame_desc(mmaped_file_pool* mfp, frame_desc* fd)
+{
+	return remove_from_hashmap(&(mfp->page_id_to_frame_desc), fd) && remove_from_hashmap(&(mfp->frame_ptr_to_frame_desc), fd);
+}
 
-void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp);
+// for the below 2 functions, we know that the frame_descriptor_mapping struct is at an offset 0 in frame_desc, with attribute name map,
+// hence we can simply pass a stack allocated reference to this smaller struct to find the request frame_desc from the corresponding map
+// this is an optimization allowing us to use lesser instantaneous stack space, since frame_desc is a huge struct
+
+// For instance on my 64 bit x86_64 machine sizeof(frame_desc) yields 320 bytes, while a frame_desc_mapping yields just 16 bytes in size
+// hence a major improvement on stack space usage, (also no need to initialize all of the frame_desc struct to 0)
+
+static frame_desc* find_frame_desc_by_page_id(mmaped_file_pool* mfp, uint64_t page_id)
+{
+	return (frame_desc*) find_equals_in_hashmap(&(mfp->page_id_to_frame_desc), &((const frame_desc_mapping){.page_id = page_id}));
+}
+
+static frame_desc* find_frame_desc_by_frame_ptr(mmaped_file_pool* mfp, void* frame)
+{
+	return (frame_desc*) find_equals_in_hashmap(&(mfp->frame_ptr_to_frame_desc), &((const frame_desc_mapping){.frame = frame}));
+}
+
+void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
+{
+	if(mfp->has_internal_lock)
+		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
+
+	// TODO
+
+	EXIT:;
+	if(mfp->has_internal_lock)
+		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+}
+
+int release_page(mmaped_file_pool* mfp, void* page)
+{
+	if(mfp->has_internal_lock)
+		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
+
+	// TODO
+
+	EXIT:;
+	if(mfp->has_internal_lock)
+		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+}
+
+uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
+{
+	if(mfp->has_internal_lock)
+		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
+
+	// TODO
+
+	EXIT:;
+	if(mfp->has_internal_lock)
+		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+}
+
+void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp)
+{
+	if(mfp->has_internal_lock)
+		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
+
+	// TODO
+
+	EXIT:;
+	if(mfp->has_internal_lock)
+		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+}
 
 void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp);

@@ -7,7 +7,7 @@ void initialize_empty_frame_desc(frame_desc* fd)
 
 	initialize_bstnode(&(fd->embed_node_page_id_to_frame_desc));
 	initialize_bstnode(&(fd->embed_node_frame_ptr_to_frame_desc));
-	initialize_llnode(&(fd->llnode embed_node_lru_lists));
+	initialize_llnode(&(fd->embed_node_unreferenced_lru_list));
 }
 
 #include<cutlery_math.h>

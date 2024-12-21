@@ -1,13 +1,18 @@
 #ifndef MMAPED_FILE_POOL_PUBLIC_H
 #define MMAPED_FILE_POOL_PUBLIC_H
 
+#include<block_io.h>
+
 #include<pthread.h>
 #include<hashmap.h>
 #include<linkedlist.h>
 
+#include<stdint.h>
+
+typedef struct mmaped_file_pool mmaped_file_pool;
 struct mmaped_file_pool
 {
-	blockfile* file;
+	block_file* file;
 
 	int has_internal_lock : 1;
 	union

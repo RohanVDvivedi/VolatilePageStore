@@ -1,6 +1,15 @@
 #ifndef FRAME_DESC_H
 #define FRAME_DESC_H
 
+#include<stdint.h>
+
+#include<linkedlist.h>
+#include<bst.h>
+
+// below struct is always suppossed to be embedded inside the frame_desc
+typedef struct frame_desc_mapping frame_desc_mapping;
+
+typedef struct frame_desc frame_desc;
 struct frame_desc
 {
 	struct frame_desc_mapping
