@@ -3,7 +3,7 @@
 
 #include<mmaped_file_pool_public.h>
 
-int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, blockfile* file, uint64_t page_size, uint64_t hashmaps_size);
+int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, blockfile* file, uint64_t page_size, uint64_t hashmaps_bucket_count);
 
 void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id);
 
