@@ -103,11 +103,14 @@ uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
 
-	// TODO
+	frame_desc* fd = find_frame_desc_by_frame_ptr(mfp, frame);
+	uint64_t page_id = fd->page_id;
 
 	EXIT:;
 	if(mfp->has_internal_lock)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+
+	return page_id;
 }
 
 void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp)
