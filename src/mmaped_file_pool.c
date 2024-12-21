@@ -3,6 +3,7 @@
 
 #include<frame_desc.h>
 
+#include<sys/mman.h>
 #include<stdio.h>
 #include<stdlib.h>
 
@@ -41,6 +42,8 @@ int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external
 	}
 
 	initialize_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), offsetof(frame_desc, embed_node_unreferenced_lru_list));
+
+	return 1;
 }
 
 static pthread_mutex_t* get_mmaped_file_pool_lock(mmaped_file_pool* mfp)
@@ -109,6 +112,24 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 	if(fd == NULL) // need to create a new frame_desc for page_id
 	{
 		// TODO
+		frame = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size);
+		if(frame == MAP_FAILED) // crash if mmap crashes
+		{
+			// MAP_FAILED possibly due to out of memory
+
+			// relieve some memory pressure
+			discard_all_unreferenced_frame_descs_UNSAFE(mfp);
+
+			// and try again
+			frame = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size);
+
+			// still failure, means panic
+			if(frame == MAP_FAILED)
+			{
+				printf("ISSUEv :: could not mmap, out of memory or page_id out of bounds\n");
+				exit(-1);
+			}
+		}
 
 		fd = malloc(sizeof(frame_desc));
 		if(fd == NULL)
@@ -128,15 +149,13 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 
 		goto EXIT;
 	}
-	else
-	{
-		fd->reference_counter++;
 
-		// we incremented its reference_counter, so now it can not be kept in unreferenced list
-		remove_from_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), fd);
+	fd->reference_counter++;
 
-		frame = fd->map.frame;
-	}
+	// we incremented its reference_counter, so now it can not be kept in unreferenced list
+	remove_from_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), fd);
+
+	frame = fd->map.frame;
 
 	EXIT:;
 	if(mfp->has_internal_lock)
@@ -177,7 +196,7 @@ uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
 
-	frame_desc* fd = find_frame_desc_by_frame_ptr(mfp, frame);
+	frame_desc* fd = find_frame_desc_by_frame_ptr(mfp, (void*)frame);
 	if(fd == NULL)
 	{
 		page_id = 0;
