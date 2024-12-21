@@ -178,14 +178,20 @@ void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 		exit(-1);
 	}
 
-	// get the page
-	void* page = block_io_get_page(vps, page_id);
+	pthread_mutex_lock(&(vps->global_lock));
 
-	// write page_id on the page, so we do not have to remember this mapping
-	set_page_id_for_page(page, page_id, &(vps->stats));
+		if(page_id >= vps->active_page_count)
+		{
+			printf("ISSUEv :: user accessing an out of bounds page_id\n");
+			exit(-1);
+		}
 
-	// return the page contents for this page
-	return get_page_contents_for_page(page, page_id, &(vps->stats));
+		// get the page
+		void* page = acquire_page(&(vps->pool), page_id);
+
+	pthread_mutex_unlock(&(vps->global_lock));
+
+	return page;
 }
 
 void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
@@ -198,6 +204,11 @@ void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 	{
 		// grab page id of the page
 		uint64_t page_id = get_page_id_for_frame(&(vps->pool), page);
+		if(page_id == UINT64_MAX)
+		{
+			printf("ISSUEv :: page to be released was never acquired\n");
+			exit(-1);
+		}
 
 		// put this page in the head of the free_pages_list
 		{
