@@ -1,12 +1,13 @@
 #include<volatile_page_store.h>
 
+#include<mmaped_file_pool.h>
 #include<volatile_page_store_truncator.h>
 
 #include<stdio.h>
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
-	pthread_mutex_init(&(vps->manager_lock), NULL);
+	pthread_mutex_init(&(vps->global_lock), NULL);
 	vps->active_page_count = 0;
 
 	if(page_size % sysconf(_SC_PAGESIZE) != 0) // page_size must be multiple of OS page size
@@ -30,6 +31,12 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 	vps->user_stats = get_volatile_page_store_user_stats(&(vps->stats), get_block_size_for_block_file(&(vps->temp_file)));
 
 	vps->free_pages_list_head_page_id = vps->user_stats.NULL_PAGE_ID;
+
+	if(!initialize_mmaped_file_pool(&(vps->pool), &(vps->global_lock), &(vps->temp_file), page_size, 1000))
+	{
+		close_block_file(&(vps->temp_file));
+		return 0;
+	}
 
 	// initialize and start the truncator
 
@@ -63,9 +70,11 @@ void deinitialize_volatile_page_store(volatile_page_store* vps)
 	while(vps->is_truncator_running)
 		pthread_cond_wait(&(vps->wait_for_truncator_to_stop), &(vps->manager_lock));
 
+	deinitialize_mmaped_file_pool(&(vps->pool));
+
 	pthread_mutex_unlock(&(vps->manager_lock));
 
-	pthread_mutex_destroy(&(vps->manager_lock));
+	pthread_mutex_destroy(&(vps->global_lock));
 	pthread_cond_destroy(&(vps->wait_for_truncator_period));
 	pthread_cond_destroy(&(vps->wait_for_truncator_to_stop));
 
