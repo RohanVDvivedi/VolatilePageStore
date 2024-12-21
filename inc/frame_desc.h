@@ -23,7 +23,7 @@ struct frame_desc
 
 	bstnode embed_node_frame_ptr_to_frame_desc;
 
-	llnode embed_node_lru_lists;
+	llnode embed_node_unreferenced_lru_list;
 };
 
 void initialize_empty_frame_desc(frame_desc* fd);
