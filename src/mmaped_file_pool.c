@@ -246,6 +246,8 @@ static void on_remove_all_from_page_id_to_frame_desc_hashmap_delete_frame_from_b
 
 void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp)
 {
+	printf("There are inall %"PRIu_cy_uint" page frames to be discarded\n", get_element_count_hashmap(&(mfp->page_id_to_frame_desc)));
+
 	discard_all_unreferenced_frame_descs_UNSAFE(mfp);
 
 	printf("There are still %"PRIu_cy_uint" page frames referenced\n", get_element_count_hashmap(&(mfp->page_id_to_frame_desc)));
