@@ -129,6 +129,9 @@ void perform_truncation(volatile_page_store* vps)
 		// truncate only if there is more than 20% of unused space at the end of the database file
 		if(vps->active_page_count - new_active_page_count > (vps->active_page_count * 0.2))
 		{
+			// before you shorten the file make sure that all free pages (which for sure are unreferenced) are unmaped
+			discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp)
+
 			vps->active_page_count = new_active_page_count;
 			if(!truncate_block_file(&(vps->temp_file), (block_count_per_page * new_active_page_count)))
 			{
