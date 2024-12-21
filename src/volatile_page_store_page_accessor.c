@@ -1,6 +1,6 @@
 #include<volatile_page_store_page_accessor.h>
 
-#include<block_io_mmap_wrapper.h>
+#include<mmaped_file_pool.h>
 
 #include<system_page_header_util.h>
 
@@ -110,7 +110,7 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 			}
 		}
 
-		page = acquire_page(vps, *(page_id));
+		page = acquire_page(&(vps->pool), *(page_id));
 	}
 	else // if next new page is a free space mapper page, then create 2 instead of 1
 	{
@@ -147,7 +147,7 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 	}
 
 	// return free space mapper page back using munmap
-	block_io_return_page(vps, free_space_mapper_page);
+	release_page(&(vps->pool), free_space_mapper_page);
 
 	return page;
 }
