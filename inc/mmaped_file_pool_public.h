@@ -16,6 +16,8 @@ struct mmaped_file_pool
 		pthread_mutex_t  internal_lock;
 	};
 
+	uint64_t page_size;
+
 	// hashtable => page_id (uint64_t) -> frame descriptor
 	hashmap page_id_to_frame_desc;
 
