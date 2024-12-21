@@ -14,7 +14,7 @@ void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id);
 
 // freeing the page with the below functions, will just put it in to the free_pages_list at its head
 
-void release_page_for_vps(volatile_page_store* vps, void* page_contents, int free_page);
+void release_page_for_vps(volatile_page_store* vps, void* page, int free_page);
 
 void free_page_for_vps(volatile_page_store* vps, uint64_t page_id);
 

@@ -188,31 +188,28 @@ void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	return get_page_contents_for_page(page, page_id, &(vps->stats));
 }
 
-void release_page_for_vps(volatile_page_store* vps, void* page_contents, int free_page)
+void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 {
-	// get page from the page contents
-	void* page = page_contents - get_system_header_size_for_data_pages(&(vps->stats));
+	pthread_mutex_lock(&(vps->global_lock));
 
 	if(!free_page)
-		block_io_return_page(vps, page);
+		release_page(&(vps->pool), page);
 	else
 	{
 		// grab page id of the page
-		uint64_t page_id = get_page_id_for_page(page, &(vps->stats));
+		uint64_t page_id = get_page_id_for_frame(&(vps->pool), page);
 
 		// put this page in the head of the free_pages_list
 		{
-			pthread_mutex_lock(&(vps->manager_lock));
+			// link this page into the free_pages_list
+			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
+			vps->free_pages_list_head_page_id = page_id;
 
-				set_page_id_for_page(page, vps->free_pages_list_head_page_id, &(vps->stats));
-
-				vps->free_pages_list_head_page_id = page_id;
-
-				block_io_return_page(vps, page);
-
-			pthread_mutex_unlock(&(vps->manager_lock));
+			release_page(&(vps->pool), page);
 		}
 	}
+
+	pthread_mutex_unlock(&(vps->global_lock));
 }
 
 void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
@@ -225,18 +222,18 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	}
 
 	// get the page
-	void* page = block_io_get_page(vps, page_id);
+	void* page = acquire_page(&(vps->pool), page_id);
 
 	// put this page in the head of the free_pages_list
 	{
-		pthread_mutex_lock(&(vps->manager_lock));
+		pthread_mutex_lock(&(vps->global_lock));
 
-			set_page_id_for_page(page, vps->free_pages_list_head_page_id, &(vps->stats));
-
+			// link this page into the free_pages_list
+			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
 			vps->free_pages_list_head_page_id = page_id;
 
-			block_io_return_page(vps, page);
+			release_page(&(vps->pool), page);
 
-		pthread_mutex_unlock(&(vps->manager_lock));
+		pthread_mutex_unlock(&(vps->global_lock));
 	}
 }
