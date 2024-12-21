@@ -74,6 +74,11 @@ static frame_desc* find_frame_desc_by_frame_ptr(mmaped_file_pool* mfp, void* fra
 	return (frame_desc*) find_equals_in_hashmap(&(mfp->frame_ptr_to_frame_desc), &((const frame_desc_mapping){.frame = frame}));
 }
 
+static void discard_all_unreferenced_frame_descs_UNSAFE(mmaped_file_pool* mfp)
+{
+	// TODO
+}
+
 void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 {
 	if(mfp->has_internal_lock)
@@ -139,7 +144,7 @@ void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp)
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
 
-	// TODO
+	discard_all_unreferenced_frame_descs_UNSAFE(mfp);
 
 	EXIT:;
 	if(mfp->has_internal_lock)
