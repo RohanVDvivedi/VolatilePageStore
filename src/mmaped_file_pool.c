@@ -100,11 +100,19 @@ int release_page(mmaped_file_pool* mfp, void* frame)
 
 uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
 {
+	uint64_t page_id;
+
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
 
 	frame_desc* fd = find_frame_desc_by_frame_ptr(mfp, frame);
-	uint64_t page_id = fd->page_id;
+	if(fd == NULL)
+	{
+		page_id = 0;
+		goto EXIT;
+	}
+
+	page_id = fd->page_id;
 
 	EXIT:;
 	if(mfp->has_internal_lock)
