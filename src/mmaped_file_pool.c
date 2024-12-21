@@ -25,6 +25,7 @@ int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external
 		mfp->external_lock = external_lock;
 
 	mfp->page_size = page_size;
+	mfp->file = file;
 
 	if(!initialize_hashmap(&(mfp->page_id_to_frame_desc), ELEMENTS_AS_RED_BLACK_BST, hashmaps_bucket_count, &simple_hasher(hash_frame_desc_by_page_id), &simple_comparator(compare_frame_desc_by_page_id), offsetof(frame_desc, embed_node_page_id_to_frame_desc)))
 	{
