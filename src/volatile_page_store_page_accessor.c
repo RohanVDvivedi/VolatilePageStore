@@ -38,7 +38,7 @@ static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* pa
 	{
 		{
 			// get free space mapper page that we interested in
-			void* free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+			void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 
 			uint64_t free_space_mapper_bit_index = 0;
 			while(free_space_mapper_bit_index < data_pages_per_extent)
@@ -51,25 +51,24 @@ static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* pa
 					break;
 
 				// if the free_space_mapper_bit_index is set, continue
-				void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
-				if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_index))
+				if(get_bit(free_space_mapper_page, free_space_mapper_bit_index))
 				{
 					free_space_mapper_bit_index++;
 					continue;
 				}
 
 				// else we allocate it, by just setting the bit
-				set_bit(free_space_mapper_page_contents, free_space_mapper_bit_index);
+				set_bit(free_space_mapper_page, free_space_mapper_bit_index);
 
 				// release free space mapper page
-				block_io_return_page(vps, free_space_mapper_page);
+				release_page(&(vps->pool), free_space_mapper_page);
 
 				// grab the page we just allocated and return
-				return block_io_get_page(vps, (*page_id));
+				return acquire_page(&(vps->pool), (*page_id));
 			}
 
 			// return free space mapper page back using munmap
-			block_io_return_page(vps, free_space_mapper_page);
+			release_page(&(vps->pool), free_space_mapper_page);
 		}
 
 		// check for overflow and increment
@@ -135,7 +134,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 {
 	void* page = NULL;
 
-	pthread_mutex_lock(&(vps->manager_lock));
+	pthread_mutex_lock(&(vps->global_lock));
 
 	{
 		// strategy 1 :: allocate form free list
@@ -160,7 +159,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 		printf("ISSUEv :: could not allocate new page for the user\n");
 		exit(-1);
 	}
-	pthread_mutex_unlock(&(vps->manager_lock));
+	pthread_mutex_unlock(&(vps->global_lock));
 
 	return page;
 }
