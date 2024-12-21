@@ -147,13 +147,13 @@ void* truncator(void* vps_v_p)
 {
 	volatile_page_store* vps = vps_v_p;
 
-	pthread_mutex_lock(&(vps->manager_lock));
+	pthread_mutex_lock(&(vps->global_lock));
 	vps->is_truncator_running = 1;
-	pthread_mutex_unlock(&(vps->manager_lock));
+	pthread_mutex_unlock(&(vps->global_lock));
 
 	while(1)
 	{
-		pthread_mutex_lock(&(vps->manager_lock));
+		pthread_mutex_lock(&(vps->global_lock));
 
 		while(!vps->truncator_shutdown_called)
 		{
@@ -169,20 +169,20 @@ void* truncator(void* vps_v_p)
 
 		if(vps->truncator_shutdown_called)
 		{
-			pthread_mutex_unlock(&(vps->manager_lock));
+			pthread_mutex_unlock(&(vps->global_lock));
 			break;
 		}
 
 		// perform truncation
 		perform_truncation(vps);
 
-		pthread_mutex_unlock(&(vps->manager_lock));
+		pthread_mutex_unlock(&(vps->global_lock));
 	}
 
-	pthread_mutex_lock(&(vps->manager_lock));
+	pthread_mutex_lock(&(vps->global_lock));
 	vps->is_truncator_running = 0;
 	pthread_cond_broadcast(&(vps->wait_for_truncator_to_stop));
-	pthread_mutex_unlock(&(vps->manager_lock));
+	pthread_mutex_unlock(&(vps->global_lock));
 
 	return NULL;
 }
