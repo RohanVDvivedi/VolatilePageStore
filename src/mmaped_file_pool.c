@@ -3,6 +3,9 @@
 
 #include<frame_desc.h>
 
+#include<stdio.h>
+#include<stdlib.h>
+
 int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, block_file* file, uint64_t page_size, uint64_t hashmaps_bucket_count)
 {
 	if(hashmaps_bucket_count == 0)
@@ -85,7 +88,7 @@ static void discard_all_unreferenced_frame_descs_UNSAFE(mmaped_file_pool* mfp)
 		remove_frame_desc(mfp, fd);
 
 		// munmap, if fails crash
-		if(munmap(fd->frame, mfp->page_size))
+		if(munmap(fd->map.frame, mfp->page_size))
 		{
 			printf("ISSUEv :: munmap failed\n");
 			exit(-1);
@@ -107,12 +110,21 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 	{
 		// TODO
 
+		fd = malloc(sizeof(frame_desc));
+		if(fd == NULL)
+		{
+			printf("ISSUEv :: could not allocate frame_desc\n");
+			exit(-1);
+		}
+		initialize_empty_frame_desc(fd);
+
+		fd->map.page_id = page_id;
+		fd->map.frame = frame;
+
 		insert_frame_desc(mfp, fd);
 
 		// we never kept it in unreferenced_lru_list
 		fd->reference_counter = 1;
-
-		frame = fd->map.frame;
 
 		goto EXIT;
 	}
@@ -188,7 +200,7 @@ void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp)
 
 	discard_all_unreferenced_frame_descs_UNSAFE(mfp);
 
-	EXIT:;
+	//EXIT:;
 	if(mfp->has_internal_lock)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
 }
