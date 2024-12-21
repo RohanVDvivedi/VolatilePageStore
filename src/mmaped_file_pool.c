@@ -224,4 +224,28 @@ void discard_all_unreferenced_frame_descs(mmaped_file_pool* mfp)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
 }
 
-void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp);
+static void on_remove_all_from_page_id_to_frame_desc_hashmap_delete_frame_from_bufferpool(void* _mfp, const void* _fd)
+{
+	mmaped_file_pool* mfp = _mfp;
+	frame_desc* fd = (frame_desc*) _fd;
+	// this fd is already being removed from mfp->page_id_to_frame_desc
+	// so we only need to remove it from mfp->frame_ptr_to_frame_desc
+	remove_from_hashmap(&(mfp->frame_ptr_to_frame_desc), fd);
+	munmap(fd->map.frame, mfp->page_size);
+	free(fd);
+}
+
+void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp)
+{
+	discard_all_unreferenced_frame_descs_UNSAFE(mfp);
+
+	printf("There are still %"PRIu_cy_uint" page frames referenced\n", get_element_count_hashmap(&(mfp->page_id_to_frame_desc)));
+
+	remove_all_from_hashmap(&(mfp->page_id_to_frame_desc), &((notifier_interface){NULL, on_remove_all_from_page_id_to_frame_desc_hashmap_delete_frame_from_bufferpool}));
+
+	deinitialize_hashmap(&(mfp->page_id_to_frame_desc));
+	deinitialize_hashmap(&(mfp->frame_ptr_to_frame_desc));
+
+	if(mfp->has_internal_lock)
+		pthread_mutex_destroy(&(mfp->internal_lock));
+}
