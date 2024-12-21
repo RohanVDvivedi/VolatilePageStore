@@ -162,11 +162,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 	}
 	pthread_mutex_unlock(&(vps->manager_lock));
 
-	// write page_id on the page, so we do not have to remember this mapping
-	set_page_id_for_page(page, (*page_id), &(vps->stats));
-
-	// return the page contents for this page
-	return get_page_contents_for_page(page, (*page_id), &(vps->stats));
+	return page;
 }
 
 void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
