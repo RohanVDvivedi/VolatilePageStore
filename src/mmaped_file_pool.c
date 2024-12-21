@@ -88,14 +88,27 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 
 int release_page(mmaped_file_pool* mfp, void* frame)
 {
+	int res;
+
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
 
-	// TODO
+	frame_desc* fd = find_frame_desc_by_frame_ptr(mfp, frame);
+	if(fd == NULL)
+	{
+		res = 0;
+		goto EXIT;
+	}
+
+	fd->reference_counter--;
+	if(fd->reference_counter == 0)
+		insert_tail_in_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), fd);
 
 	EXIT:;
 	if(mfp->has_internal_lock)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+
+	return res;
 }
 
 uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
@@ -112,7 +125,7 @@ uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
 		goto EXIT;
 	}
 
-	page_id = fd->page_id;
+	page_id = fd->map.page_id;
 
 	EXIT:;
 	if(mfp->has_internal_lock)
