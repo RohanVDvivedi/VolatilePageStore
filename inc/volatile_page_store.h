@@ -32,6 +32,9 @@ struct volatile_page_store
 	// stats to be used by user
 	volatile_page_store_user_stats user_stats;
 
+	// pool of mmaped pages, to avoid system call overhead and evictions of frequently used pages
+	mmaped_file_pool pool;
+
 	// below attributes are use for truncator thread only
 
 	// job for truncator
