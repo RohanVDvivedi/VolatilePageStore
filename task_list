@@ -1,9 +1,3 @@
- * use the above functionality to replace the block_io_mmap_wrapper calls
- * after every truncator function before you truncate the actual file, call discard_all_unreferenced_frame_descs()
-
- * no need to store page_ids on the page, query the page_id of the page from the mmaped_file_pool's get_page_id_for_frame
- * you can return the page to the user directly
- * for free_pages_list_head_page_id page_id can be stored directly on the page without any function
 
  * test
    * ensure that there are no mmap leaks
