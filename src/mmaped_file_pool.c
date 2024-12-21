@@ -97,14 +97,40 @@ static void discard_all_unreferenced_frame_descs_UNSAFE(mmaped_file_pool* mfp)
 
 void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 {
+	void* frame;
+
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
 
-	// TODO
+	frame_desc* fd = find_frame_desc_by_page_id(mfp, page_id);
+	if(fd == NULL) // need to create a new frame_desc for page_id
+	{
+		// TODO
+
+		insert_frame_desc(mfp, fd);
+
+		// we never kept it in unreferenced_lru_list
+		fd->reference_counter = 1;
+
+		frame = fd->map.frame;
+
+		goto EXIT;
+	}
+	else
+	{
+		fd->reference_counter++;
+
+		// we incremented its reference_counter, so now it can not be kept in unreferenced list
+		remove_from_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), fd);
+
+		frame = fd->map.frame;
+	}
 
 	EXIT:;
 	if(mfp->has_internal_lock)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
+
+	return frame;
 }
 
 int release_page(mmaped_file_pool* mfp, void* frame)
