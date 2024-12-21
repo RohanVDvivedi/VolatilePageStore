@@ -97,9 +97,20 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 
 		// first grab latch on the free space mapper page
 		free_space_mapper_page_id = get_is_valid_bit_page_id_for_page((*page_id), &(vps->stats));
-		free_space_mapper_page = block_io_get_page(vps, free_space_mapper_page_id);
+		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 
-		page = block_io_get_new_page(vps, page_id);
+		(*page_id) = ((vps->active_page_count)++);
+		// expand the file
+		{
+			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
+			if(!truncate_block_file(&(vps->temp_file), block_count))
+			{
+				printf("ISSUEv :: could not expand the file\n");
+				exit(-1);
+			}
+		}
+
+		page = acquire_page(vps, *(page_id));
 	}
 	else // if next new page is a free space mapper page, then create 2 instead of 1
 	{
@@ -107,21 +118,32 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 		if(vps->user_stats.max_page_count - vps->active_page_count < 2)
 			return NULL;
 
-		free_space_mapper_page = block_io_get_new_page(vps, &free_space_mapper_page_id);
+		free_space_mapper_page_id = ((vps->active_page_count)++);
+		(*page_id) = ((vps->active_page_count)++);
+		// expand the file
+		{
+			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
+			if(!truncate_block_file(&(vps->temp_file), block_count))
+			{
+				printf("ISSUEv :: could not expand the file\n");
+				exit(-1);
+			}
+		}
 
-		page = block_io_get_new_page(vps, page_id);
+		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
+		memory_set(free_space_mapper_page, 0, vps->stats.page_size);
+		page = acquire_page(&(vps->pool), (*page_id));
 	}
 
 	// perform the actual allocation
 	{
 		uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page((*page_id), &(vps->stats));
-		void* free_space_mapper_page_contents = get_page_contents_for_page(free_space_mapper_page, free_space_mapper_page_id, &(vps->stats));
-		if(get_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos) != 0) // this may never happen, we are just ensuring that the page being allocated is free
+		if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos) != 0) // this may never happen, we are just ensuring that the page being allocated is free
 		{
 			printf("ISSUEv :: bug in page allocation or new page initialization, page attempting to be allocated is not marked free\n");
 			exit(-1);
 		}
-		set_bit(free_space_mapper_page_contents, free_space_mapper_bit_pos);
+		set_bit(free_space_mapper_page, free_space_mapper_bit_pos);
 	}
 
 	// return free space mapper page back using munmap
