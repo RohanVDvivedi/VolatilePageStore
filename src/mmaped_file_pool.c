@@ -86,7 +86,7 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
 }
 
-int release_page(mmaped_file_pool* mfp, void* page)
+int release_page(mmaped_file_pool* mfp, void* frame)
 {
 	if(mfp->has_internal_lock)
 		pthread_mutex_lock(get_mmaped_file_pool_lock(mfp));
