@@ -111,7 +111,7 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 	frame_desc* fd = find_frame_desc_by_page_id(mfp, page_id);
 	if(fd == NULL) // need to create a new frame_desc for page_id
 	{
-		// TODO
+		// mmap the page frame
 		frame = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size);
 		if(frame == MAP_FAILED) // crash if mmap crashes
 		{
@@ -126,11 +126,12 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 			// still failure, means panic
 			if(frame == MAP_FAILED)
 			{
-				printf("ISSUEv :: could not mmap, out of memory or page_id out of bounds\n");
+				printf("ISSUEv :: could not mmap, reason : out of memory or page_id out of bounds\n");
 				exit(-1);
 			}
 		}
 
+		// malloc the fd
 		fd = malloc(sizeof(frame_desc));
 		if(fd == NULL)
 		{
@@ -178,6 +179,13 @@ int release_page(mmaped_file_pool* mfp, void* frame)
 		goto EXIT;
 	}
 
+	// frame to be released was never acquired
+	if(fd->reference_counter == 0)
+	{
+		printf("ISSUEv :: frame being relesed was never acquired\n");
+		exit(-1);
+	}
+
 	fd->reference_counter--;
 	if(fd->reference_counter == 0)
 		insert_tail_in_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), fd);
@@ -199,7 +207,7 @@ uint64_t get_page_id_for_frame(mmaped_file_pool* mfp, const void* frame)
 	frame_desc* fd = find_frame_desc_by_frame_ptr(mfp, (void*)frame);
 	if(fd == NULL)
 	{
-		page_id = 0;
+		page_id = UINT64_MAX;
 		goto EXIT;
 	}
 
