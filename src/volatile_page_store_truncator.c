@@ -163,7 +163,7 @@ void* truncator(void* vps_v_p)
 			struct timespec stop_at = {.tv_sec = now.tv_sec + diff.tv_sec, .tv_nsec = now.tv_nsec + diff.tv_nsec};
 			stop_at.tv_sec += stop_at.tv_nsec / 1000000000LL;
 			stop_at.tv_nsec = stop_at.tv_nsec % 1000000000LL;
-			if(ETIMEDOUT == pthread_cond_timedwait(&(vps->wait_for_truncator_period), &(vps->manager_lock), &stop_at))
+			if(ETIMEDOUT == pthread_cond_timedwait(&(vps->wait_for_truncator_period), &(vps->global_lock), &stop_at))
 				break;
 		}
 
