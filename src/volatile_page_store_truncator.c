@@ -9,6 +9,8 @@
 #include<stdlib.h>
 #include<pthread.h>
 
+#include<pthread_cond_utils.h>
+
 #include<volatile_page_store.h>
 #include<mmaped_file_pool.h>
 
@@ -154,13 +156,8 @@ void* truncator(void* vps_v_p)
 
 		while(!vps->truncator_shutdown_called)
 		{
-			struct timespec now;
-			clock_gettime(CLOCK_REALTIME, &now);
-			struct timespec diff = {.tv_sec = (vps->truncator_period_in_microseconds / 1000000LL), .tv_nsec = (vps->truncator_period_in_microseconds % 1000000LL) * 1000LL};
-			struct timespec stop_at = {.tv_sec = now.tv_sec + diff.tv_sec, .tv_nsec = now.tv_nsec + diff.tv_nsec};
-			stop_at.tv_sec += stop_at.tv_nsec / 1000000000LL;
-			stop_at.tv_nsec = stop_at.tv_nsec % 1000000000LL;
-			if(ETIMEDOUT == pthread_cond_timedwait(&(vps->wait_for_truncator_period), &(vps->global_lock), &stop_at))
+			uint64_t period_in_microseconds = vps->truncator_period_in_microseconds;
+			if(pthread_cond_timedwait_for_microseconds(&(vps->wait_for_truncator_period), &(vps->global_lock), &period_in_microseconds))
 				break;
 		}
 

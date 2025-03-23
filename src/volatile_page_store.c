@@ -3,6 +3,8 @@
 #include<mmaped_file_pool.h>
 #include<volatile_page_store_truncator.h>
 
+#include<pthread_cond_utils.h>
+
 #include<stdio.h>
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
@@ -41,8 +43,8 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 	// initialize and start the truncator
 
 	vps->truncator_period_in_microseconds = truncator_period_in_microseconds;
-	pthread_cond_init(&(vps->wait_for_truncator_period), NULL);
-	pthread_cond_init(&(vps->wait_for_truncator_to_stop), NULL);
+	pthread_cond_init_with_monotonic_clock(&(vps->wait_for_truncator_period));
+	pthread_cond_init_with_monotonic_clock(&(vps->wait_for_truncator_to_stop));
 	vps->is_truncator_running = 0;
 	vps->truncator_shutdown_called = 0;
 

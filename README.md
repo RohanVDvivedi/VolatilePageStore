@@ -14,6 +14,7 @@ Using this project you will never experience aborts (no WAL-no atomicity/no dura
  * [SerializableInteger](https://github.com/RohanVDvivedi/SerializableInteger)
  * [BoomPar](https://github.com/RohanVDvivedi/BoomPar)
  * [Cutlery](https://github.com/RohanVDvivedi/Cutlery)
+ * [PosixUtils](https://github.com/RohanVDvivedi/PosixUtils)
 
 **Download source code :**
  * `git clone https://github.com/RohanVDvivedi/VolatilePageStore.git`
