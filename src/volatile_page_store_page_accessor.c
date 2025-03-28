@@ -249,12 +249,12 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 		exit(-1);
 	}
 
-	// get the page
-	void* page = acquire_page(&(vps->pool), page_id);
-
 	// put this page in the head of the free_pages_list
 	{
 		pthread_mutex_lock(&(vps->global_lock));
+
+			// get the page
+			void* page = acquire_page(&(vps->pool), page_id);
 
 			// link this page into the free_pages_list
 			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
