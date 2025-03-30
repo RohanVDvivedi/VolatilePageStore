@@ -1,4 +1,4 @@
-#include<frame_desc.h>
+#include<volatilepagestore/frame_desc.h>
 
 void initialize_empty_frame_desc(frame_desc* fd)
 {
@@ -10,7 +10,7 @@ void initialize_empty_frame_desc(frame_desc* fd)
 	initialize_llnode(&(fd->embed_node_unreferenced_lru_list));
 }
 
-#include<cutlery_math.h>
+#include<cutlery/cutlery_math.h>
 
 cy_uint hash_frame_desc_by_page_id(const void* pd_p)
 {

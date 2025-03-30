@@ -1,18 +1,18 @@
-#include<volatile_page_store_truncator.h>
+#include<volatilepagestore/volatile_page_store_truncator.h>
 
-#include<system_page_header_util.h>
+#include<volatilepagestore/system_page_header_util.h>
 
-#include<bitmap.h>
+#include<cutlery/bitmap.h>
 
 #include<stdio.h>
 #include<errno.h>
 #include<stdlib.h>
 #include<pthread.h>
 
-#include<pthread_cond_utils.h>
+#include<posixutils/pthread_cond_utils.h>
 
-#include<volatile_page_store.h>
-#include<mmaped_file_pool.h>
+#include<volatilepagestore/volatile_page_store.h>
+#include<volatilepagestore/mmaped_file_pool.h>
 
 void perform_truncation(volatile_page_store* vps)
 {

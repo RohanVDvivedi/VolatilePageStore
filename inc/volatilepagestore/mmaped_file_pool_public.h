@@ -1,11 +1,11 @@
 #ifndef MMAPED_FILE_POOL_PUBLIC_H
 #define MMAPED_FILE_POOL_PUBLIC_H
 
-#include<block_io.h>
+#include<blockio/block_io.h>
 
 #include<pthread.h>
-#include<hashmap.h>
-#include<linkedlist.h>
+#include<cutlery/hashmap.h>
+#include<cutlery/linkedlist.h>
 
 #include<stdint.h>
 

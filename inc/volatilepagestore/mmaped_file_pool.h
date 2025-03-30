@@ -1,7 +1,7 @@
 #ifndef MMAPED_FILE_POOL_H
 #define MMAPED_FILE_POOL_H
 
-#include<mmaped_file_pool_public.h>
+#include<volatilepagestore/mmaped_file_pool_public.h>
 
 int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external_lock, block_file* file, uint64_t page_size, uint64_t hashmaps_bucket_count);
 

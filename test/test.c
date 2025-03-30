@@ -1,4 +1,4 @@
-#include<volatile_page_store.h>
+#include<volatilepagestore/volatile_page_store.h>
 
 #include<string.h>
 #include<stdio.h>
@@ -30,8 +30,8 @@ void generate_random_inputs()
 const void* transaction_id = NULL;
 int abort_error = 0;
 
-#include<sorter.h>
-#include<linked_page_list.h>
+#include<tupleindexer/sorter/sorter.h>
+#include<tupleindexer/linked_page_list/linked_page_list.h>
 
 void main1()
 {
@@ -107,7 +107,7 @@ void main1()
 	deinitialize_tuple_defs();
 }
 
-#include<bplus_tree.h>
+#include<tupleindexer/bplus_tree/bplus_tree.h>
 
 void main2()
 {
@@ -188,7 +188,7 @@ void main3()
 	}
 }
 
-#include<index_accessed_search_sort.h>
+#include<cutlery/index_accessed_search_sort.h>
 
 const void* getter(const void* ds_p, cy_uint index)
 {

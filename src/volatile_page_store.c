@@ -1,9 +1,9 @@
-#include<volatile_page_store.h>
+#include<volatilepagestore/volatile_page_store.h>
 
-#include<mmaped_file_pool.h>
-#include<volatile_page_store_truncator.h>
+#include<volatilepagestore/mmaped_file_pool.h>
+#include<volatilepagestore/volatile_page_store_truncator.h>
 
-#include<pthread_cond_utils.h>
+#include<posixutils/pthread_cond_utils.h>
 
 #include<stdio.h>
 

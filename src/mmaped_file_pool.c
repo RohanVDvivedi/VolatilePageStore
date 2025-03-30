@@ -1,7 +1,7 @@
-#include<block_io.h>
-#include<mmaped_file_pool.h>
+#include<blockio/block_io.h>
+#include<volatilepagestore/mmaped_file_pool.h>
 
-#include<frame_desc.h>
+#include<volatilepagestore/frame_desc.h>
 
 #include<sys/mman.h>
 #include<stdio.h>

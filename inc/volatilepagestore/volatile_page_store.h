@@ -1,13 +1,13 @@
 #ifndef VOLATILE_PAGE_STORE_H
 #define VOLATILE_PAGE_STORE_H
 
-#include<block_io.h>
+#include<blockio/block_io.h>
 
-#include<mmaped_file_pool_public.h>
-#include<volatile_page_store_stats.h>
+#include<volatilepagestore/mmaped_file_pool_public.h>
+#include<volatilepagestore/volatile_page_store_stats.h>
 
 #include<pthread.h>
-#include<job.h>
+#include<boompar/job.h>
 
 typedef struct volatile_page_store volatile_page_store;
 struct volatile_page_store
@@ -55,7 +55,7 @@ struct volatile_page_store
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds);
 
-#include<volatile_page_store_page_accessor.h>
+#include<volatilepagestore/volatile_page_store_page_accessor.h>
 
 void deinitialize_volatile_page_store(volatile_page_store* vps);
 

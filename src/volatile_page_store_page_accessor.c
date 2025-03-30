@@ -1,10 +1,10 @@
-#include<volatile_page_store_page_accessor.h>
+#include<volatilepagestore/volatile_page_store_page_accessor.h>
 
-#include<mmaped_file_pool.h>
+#include<volatilepagestore/mmaped_file_pool.h>
 
-#include<system_page_header_util.h>
+#include<volatilepagestore/system_page_header_util.h>
 
-#include<bitmap.h>
+#include<cutlery/bitmap.h>
 
 #include<stdlib.h>
 #include<stdio.h>

@@ -1,7 +1,7 @@
 #ifndef VOLATILE_PAGE_STORE_PAGE_ACCESSOR_H
 #define VOLATILE_PAGE_STORE_PAGE_ACCESSOR_H
 
-#include<volatile_page_store.h>
+#include<volatilepagestore/volatile_page_store.h>
 
 void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id);
 

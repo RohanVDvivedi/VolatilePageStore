@@ -1,9 +1,9 @@
 #ifndef SYSTEM_PAGE_HEADER_UTIL_H
 #define SYSTEM_PAGE_HEADER_UTIL_H
 
-#include<large_uints.h>
+#include<serint/large_uints.h>
 
-#include<volatile_page_store_stats.h>
+#include<volatilepagestore/volatile_page_store_stats.h>
 
 int is_free_space_mapper_page(uint64_t page_id, const volatile_page_store_stats* stats);
 

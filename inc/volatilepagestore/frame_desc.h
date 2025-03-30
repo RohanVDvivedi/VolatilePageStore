@@ -3,8 +3,8 @@
 
 #include<stdint.h>
 
-#include<linkedlist.h>
-#include<bst.h>
+#include<cutlery/linkedlist.h>
+#include<cutlery/bst.h>
 
 // below struct is always suppossed to be embedded inside the frame_desc
 typedef struct frame_desc_mapping frame_desc_mapping;

@@ -1,5 +1,5 @@
-#include<page_access_methods.h>
-#include<page_modification_methods.h>
+#include<tupleindexer/interface/page_access_methods.h>
+#include<tupleindexer/interface/page_modification_methods.h>
 
 //#define GENERATE_TRACE
 
@@ -85,7 +85,7 @@ void init_pam_for_vps(volatile_page_store* vps)
 
 page_modification_methods pmm;
 
-#include<unWALed_page_modification_methods.h>
+#include<tupleindexer/interface/unWALed_page_modification_methods.h>
 
 void init_pmm_for_vps()
 {

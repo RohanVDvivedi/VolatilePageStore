@@ -1,8 +1,8 @@
-#include<volatile_page_store_stats.h>
+#include<volatilepagestore/volatile_page_store_stats.h>
 
-#include<block_io.h>
+#include<blockio/block_io.h>
 
-#include<system_page_header_util.h>
+#include<volatilepagestore/system_page_header_util.h>
 
 volatile_page_store_user_stats get_volatile_page_store_user_stats(const volatile_page_store_stats* stats, uint32_t temp_file_block_size)
 {
