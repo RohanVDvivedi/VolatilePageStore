@@ -1,8 +1,1 @@
-
- * test
-   * ensure that there are no mmap leaks
-
- * add test to sort the tuples in memory using quicksort and compare
  * optimize sort performance of TupleIndexer's sorter to achieve 1M tuples per second
-
- * readme
