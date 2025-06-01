@@ -9,7 +9,6 @@
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
-	pthread_mutex_init(&(vps->global_lock), NULL);
 	vps->active_page_count = 0;
 
 	if(page_size % sysconf(_SC_PAGESIZE) != 0) // page_size must be multiple of OS page size
@@ -18,11 +17,17 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 	if(page_id_width == 0 || page_id_width > 8) // page_id_width must be between 1 to 8 both inclusive
 		return 0;
 
+	if(truncator_period_in_microseconds == BLOCKING || truncator_period_in_microseconds == NON_BLOCKING)
+		return 0;
+
 	if(!temp_block_file(&(vps->temp_file), directory, 0))
 		return 0;
 
+	pthread_mutex_init(&(vps->global_lock), NULL);
+
 	if(page_size % get_block_size_for_block_file(&(vps->temp_file)) != 0) // page_size must also be multiple of block size of the disk
 	{
+		pthread_mutex_destroy(&(vps->global_lock));
 		close_block_file(&(vps->temp_file));
 		return 0;
 	}
@@ -36,49 +41,35 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 
 	if(!initialize_mmaped_file_pool(&(vps->pool), &(vps->global_lock), &(vps->temp_file), page_size, 1000))
 	{
+		pthread_mutex_destroy(&(vps->global_lock));
 		close_block_file(&(vps->temp_file));
 		return 0;
 	}
 
 	// initialize and start the truncator
 
-	vps->truncator_period_in_microseconds = truncator_period_in_microseconds;
-	pthread_cond_init_with_monotonic_clock(&(vps->wait_for_truncator_period));
-	pthread_cond_init_with_monotonic_clock(&(vps->wait_for_truncator_to_stop));
-	vps->is_truncator_running = 0;
-	vps->truncator_shutdown_called = 0;
-
-	// start truncator thread
-	initialize_job(&(vps->truncator_job), truncator, vps, NULL, NULL);
-	pthread_t thread_id;
-	int truncator_job_start_error = execute_job_async(&(vps->truncator_job), &thread_id);
-	if(truncator_job_start_error)
+	vps->periodic_truncator_job = new_periodic_job(truncator_function, vps, truncator_period_in_microseconds);
+	if(vps->periodic_truncator_job == NULL)
 	{
-		printf("ISSUEv :: could not start truncator job\n");
-		exit(-1);
+		deinitialize_mmaped_file_pool(&(vps->pool));
+		pthread_mutex_destroy(&(vps->global_lock));
+		close_block_file(&(vps->temp_file));
+		return 0;
 	}
+
+	resume_periodic_job(vps->periodic_truncator_job);
 
 	return 1;
 }
 
 void deinitialize_volatile_page_store(volatile_page_store* vps)
 {
-	pthread_mutex_lock(&(vps->global_lock));
-
-	vps->truncator_shutdown_called = 1;
-
-	// wake up truncator and wait for it to stop
-	pthread_cond_signal(&(vps->wait_for_truncator_period));
-	while(vps->is_truncator_running)
-		pthread_cond_wait(&(vps->wait_for_truncator_to_stop), &(vps->global_lock));
+	// delete and shutdown periodic truncator job
+	delete_periodic_job(vps->periodic_truncator_job);
 
 	deinitialize_mmaped_file_pool(&(vps->pool));
 
-	pthread_mutex_unlock(&(vps->global_lock));
-
 	pthread_mutex_destroy(&(vps->global_lock));
-	pthread_cond_destroy(&(vps->wait_for_truncator_period));
-	pthread_cond_destroy(&(vps->wait_for_truncator_to_stop));
 
 	close_block_file(&(vps->temp_file));
 }

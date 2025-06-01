@@ -14,7 +14,7 @@
 #include<volatilepagestore/volatile_page_store.h>
 #include<volatilepagestore/mmaped_file_pool.h>
 
-void perform_truncation(volatile_page_store* vps)
+static void perform_truncation(volatile_page_store* vps)
 {
 	{
 		// preserving the free_space_mapper_page
@@ -142,41 +142,14 @@ void perform_truncation(volatile_page_store* vps)
 	}
 }
 
-void* truncator(void* vps_v_p)
+void truncator_function(void* vps_v_p)
 {
 	volatile_page_store* vps = vps_v_p;
 
 	pthread_mutex_lock(&(vps->global_lock));
-	vps->is_truncator_running = 1;
-	pthread_mutex_unlock(&(vps->global_lock));
-
-	while(1)
-	{
-		pthread_mutex_lock(&(vps->global_lock));
-
-		while(!vps->truncator_shutdown_called)
-		{
-			uint64_t period_in_microseconds = vps->truncator_period_in_microseconds;
-			if(pthread_cond_timedwait_for_microseconds(&(vps->wait_for_truncator_period), &(vps->global_lock), &period_in_microseconds))
-				break;
-		}
-
-		if(vps->truncator_shutdown_called)
-		{
-			pthread_mutex_unlock(&(vps->global_lock));
-			break;
-		}
 
 		// perform truncation
 		perform_truncation(vps);
 
-		pthread_mutex_unlock(&(vps->global_lock));
-	}
-
-	pthread_mutex_lock(&(vps->global_lock));
-	vps->is_truncator_running = 0;
-	pthread_cond_broadcast(&(vps->wait_for_truncator_to_stop));
 	pthread_mutex_unlock(&(vps->global_lock));
-
-	return NULL;
 }
