@@ -1,6 +1,8 @@
 #include<tupleindexer/interface/page_access_methods.h>
 #include<tupleindexer/interface/page_modification_methods.h>
 
+#include<stdlib.h>
+
 //#define GENERATE_TRACE
 
 void* get_new_page_with_write_lock_vps(void* context, const void* transaction_id, uint64_t* page_id_returned, int* abort_error)
