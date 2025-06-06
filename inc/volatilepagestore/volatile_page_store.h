@@ -45,4 +45,6 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 
 void deinitialize_volatile_page_store(volatile_page_store* vps);
 
+int update_truncator_period_for_volatile_page_store(volatile_page_store* vps, uint64_t truncator_period_in_microseconds);
+
 #endif

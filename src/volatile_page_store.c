@@ -7,6 +7,8 @@
 
 #include<stdio.h>
 
+#define MINIMUM_TRUNCATOR_PERIOD (5000000) // 5 seconds
+
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
 	vps->active_page_count = 0;
@@ -18,6 +20,9 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 		return 0;
 
 	if(truncator_period_in_microseconds == BLOCKING || truncator_period_in_microseconds == NON_BLOCKING)
+		return 0;
+
+	if(truncator_period_in_microseconds < MINIMUM_TRUNCATOR_PERIOD)
 		return 0;
 
 	if(!temp_block_file(&(vps->temp_file), directory, 0))
@@ -72,4 +77,12 @@ void deinitialize_volatile_page_store(volatile_page_store* vps)
 	pthread_mutex_destroy(&(vps->global_lock));
 
 	close_block_file(&(vps->temp_file));
+}
+
+int update_truncator_period_for_volatile_page_store(volatile_page_store* vps, uint64_t truncator_period_in_microseconds)
+{
+	if(truncator_period_in_microseconds < MINIMUM_TRUNCATOR_PERIOD)
+		return 0;
+
+	return update_period_for_periodic_job(vps->periodic_truncator_job, truncator_period_in_microseconds);
 }
