@@ -2,7 +2,7 @@
 
 uint64_t is_valid_bits_count_on_free_space_mapper_page(const volatile_page_store_stats* stats)
 {
-	return ((uint64_t)(stats->page_size)) * UINT64_C(8);
+	return ((uint64_t)(stats->page_size)) * CHAR_BIT; // there are CHAR_BIT number of bits in every byte
 }
 
 #define PAGE_POS_MULTIPLIER(stats) (is_valid_bits_count_on_free_space_mapper_page(stats) + UINT64_C(1))
