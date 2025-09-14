@@ -113,7 +113,7 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 	if(fd == NULL) // need to create a new frame_desc for page_id
 	{
 		// mmap the page frame
-		frame = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size); /* I know this looks like a code smell, but remember mmap on most systems will not cause disk IO, it will be defferred until you touch the page and page-fault it, so it is just enough right to do this mmap call here with the global mutex held. As of the mmap call itself, I believe concurrent mmap calls that touch the page table and virtual memory mapping will likely be serialized by kernel.*/
+		frame = mmap64(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size); /* I know this looks like a code smell, but remember mmap on most systems will not cause disk IO, it will be defferred until you touch the page and page-fault it, so it is just enough right to do this mmap call here with the global mutex held. As of the mmap call itself, I believe concurrent mmap calls that touch the page table and virtual memory mapping will likely be serialized by kernel.*/
 		if(frame == MAP_FAILED) // crash if mmap crashes
 		{
 			// MAP_FAILED possibly due to out of memory
@@ -122,7 +122,7 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 			discard_all_unreferenced_frame_descs_UNSAFE(mfp);
 
 			// and try again
-			frame = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size);
+			frame = mmap64(NULL, mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, page_id * mfp->page_size);
 
 			// still failure, means panic
 			if(frame == MAP_FAILED)
