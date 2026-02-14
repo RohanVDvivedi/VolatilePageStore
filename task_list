@@ -1,1 +1,0 @@
- * optimize sort performance of TupleIndexer's sorter to achieve 1M tuples per second
