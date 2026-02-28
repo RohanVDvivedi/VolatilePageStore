@@ -35,7 +35,7 @@ int abort_error = 0;
 #include<tupleindexer/sorter/sorter.h>
 #include<tupleindexer/linked_page_list/linked_page_list.h>
 
-#define N_WAY_MERGE 10
+#define N_WAY_MERGE 50
 #define MERGE_THREAD_POOL_SIZE 8
 
 pthread_mutex_t sorter_lock = PTHREAD_MUTEX_INITIALIZER;
