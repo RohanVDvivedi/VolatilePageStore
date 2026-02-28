@@ -82,6 +82,7 @@ void main1()
 			exit(-1);
 		}
 	}
+	insert_in_sorter(&sh, NULL, transaction_id, &abort_error);
 
 	// mark insertions completed
 	finished_insertion = 1;
