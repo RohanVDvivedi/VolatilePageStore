@@ -6,6 +6,8 @@
 #include<callbacks_tupleindexer.h>
 #include<test_tuple_infos.h>
 
+#include<boompar/executor.h>
+
 volatile_page_store vps;
 
 #define PAGE_SIZE (4 * 4096)
@@ -33,6 +35,25 @@ int abort_error = 0;
 #include<tupleindexer/sorter/sorter.h>
 #include<tupleindexer/linked_page_list/linked_page_list.h>
 
+#define N_WAY_MERGE 10
+#define MERGE_THREAD_POOL_SIZE 8
+
+volatile int finished_insertion = 0;
+void* merge_runs(void* sh_vp)
+{
+	sorter_handle* sh_p = sh_vp;
+
+	while(1)
+	{
+		volatile int finished_local = finished_insertion;
+		volatile int merged = merge_N_runs_in_sorter(sh_p, N_WAY_MERGE, transaction_id, &abort_error);
+		if(merged == 0 && finished_local == 1)
+			break;
+	}
+
+	return NULL;
+}
+
 void main1()
 {
 	initialize_tuple_defs();
@@ -46,8 +67,11 @@ void main1()
 
 	sorter_handle sh = get_new_sorter(&stdef, &pam, &pmm, transaction_id, &abort_error);
 
+	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
+	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
+		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
+
 	// perform random 100,000 inserts
-	printf("\n\nPERFORMING INSERTS\n\n");
 	for(int i = 0; i < TESTCASE_SIZE; i++)
 	{
 		char record[900];
@@ -59,9 +83,13 @@ void main1()
 		}
 	}
 
-	// sort the contents of the sorter
-	printf("\n\nPERFORMING SORTING\n\n");
-	external_sort_merge_sorter(&sh, 100, transaction_id, &abort_error);
+	// mark insertions completed
+	finished_insertion = 1;
+
+	// wait for all mergeing threads to return
+	shutdown_executor(thread_pool, 0);
+	wait_for_all_executor_workers_to_complete(thread_pool);
+	delete_executor(thread_pool);
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
