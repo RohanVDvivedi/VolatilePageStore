@@ -71,7 +71,8 @@ void main1()
 	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
 		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);*/
 
-	// perform random 100,000 inserts
+	// perform random 1000,000 inserts
+	printf("\n\nPERFORMING INSERTS\n\n");
 	for(int i = 0; i < TESTCASE_SIZE; i++)
 	{
 		char record[900];
@@ -270,8 +271,8 @@ int main()
 	srand(time(NULL));
 	generate_random_inputs();
 
-	main1();
-	//main2();
+	//main1();
+	main2();
 	//main3();
 	//main4();
 	//sleep((TRUNCATOR_PERIOD_US / 1000000) + 1);
