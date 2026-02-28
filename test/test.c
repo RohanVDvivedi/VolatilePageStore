@@ -38,6 +38,9 @@ int abort_error = 0;
 #define N_WAY_MERGE 50
 #define MERGE_THREAD_POOL_SIZE 8
 
+// comment below macro to run merging only in the main thread
+#define PARALLEL_SORTER
+
 pthread_mutex_t sorter_lock = PTHREAD_MUTEX_INITIALIZER;
 void lock(void* sorter_lock)
 {
@@ -77,9 +80,11 @@ void main1()
 
 	sorter_handle sh = get_new_sorter((sorter_locker){&sorter_lock, lock, unlock}, &stdef, &pam, &pmm, transaction_id, &abort_error);
 
+#ifdef PARALLEL_SORTER
 	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
 	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
 		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
+#endif
 
 	// perform random 1000,000 inserts
 	printf("\n\nPERFORMING INSERTS\n\n");
@@ -98,10 +103,14 @@ void main1()
 	// mark insertions completed
 	finished_insertion = 1;
 
+#ifdef PARALLEL_SORTER
 	// wait for all mergeing threads to return
 	shutdown_executor(thread_pool, 0);
 	wait_for_all_executor_workers_to_complete(thread_pool);
 	delete_executor(thread_pool);
+#else
+	merge_runs(&sh);
+#endif
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
