@@ -67,9 +67,9 @@ void main1()
 
 	sorter_handle sh = get_new_sorter(&stdef, &pam, &pmm, transaction_id, &abort_error);
 
-	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
+	/*executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
 	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
-		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
+		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);*/
 
 	// perform random 100,000 inserts
 	for(int i = 0; i < TESTCASE_SIZE; i++)
@@ -88,9 +88,11 @@ void main1()
 	finished_insertion = 1;
 
 	// wait for all mergeing threads to return
-	shutdown_executor(thread_pool, 0);
+	/*shutdown_executor(thread_pool, 0);
 	wait_for_all_executor_workers_to_complete(thread_pool);
-	delete_executor(thread_pool);
+	delete_executor(thread_pool);*/
+
+	while(merge_N_runs_in_sorter(&sh, N_WAY_MERGE, transaction_id, &abort_error) == 1);
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
