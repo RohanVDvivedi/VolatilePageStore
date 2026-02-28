@@ -38,6 +38,16 @@ int abort_error = 0;
 #define N_WAY_MERGE 10
 #define MERGE_THREAD_POOL_SIZE 8
 
+pthread_mutex_t sorter_lock = PTHREAD_MUTEX_INITIALIZER;
+void lock(void* sorter_lock)
+{
+	pthread_mutex_lock(sorter_lock);
+}
+void unlock(void* sorter_lock)
+{
+	pthread_mutex_unlock(sorter_lock);
+}
+
 volatile int finished_insertion = 0;
 void* merge_runs(void* sh_vp)
 {
@@ -65,11 +75,11 @@ void main1()
 		exit(-1);
 	}
 
-	sorter_handle sh = get_new_sorter(&stdef, &pam, &pmm, transaction_id, &abort_error);
+	sorter_handle sh = get_new_sorter((sorter_locker){&sorter_lock, lock, unlock}, &stdef, &pam, &pmm, transaction_id, &abort_error);
 
-	/*executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
+	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
 	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
-		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);*/
+		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
 
 	// perform random 1000,000 inserts
 	printf("\n\nPERFORMING INSERTS\n\n");
@@ -89,11 +99,9 @@ void main1()
 	finished_insertion = 1;
 
 	// wait for all mergeing threads to return
-	/*shutdown_executor(thread_pool, 0);
+	shutdown_executor(thread_pool, 0);
 	wait_for_all_executor_workers_to_complete(thread_pool);
-	delete_executor(thread_pool);*/
-
-	while(merge_N_runs_in_sorter(&sh, N_WAY_MERGE, transaction_id, &abort_error) == 1);
+	delete_executor(thread_pool);
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
