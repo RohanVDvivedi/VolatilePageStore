@@ -50,7 +50,7 @@ void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uin
 {
 	if(pushed_count > 0)
 		unaccounted_runs += pushed_count;
-	if(pushed_count > 0 && unaccounted_runs > 1)
+	if(pushed_count > 0 && unaccounted_runs >= N_WAY_MERGE)
 	{
 		unaccounted_runs -= min(N_WAY_MERGE, unaccounted_runs);
 		pthread_cond_signal(&fc);
