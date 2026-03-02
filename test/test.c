@@ -16,7 +16,7 @@ volatile_page_store vps;
 
 #define TESTCASE_SIZE 1000000
 
-#define PRINT_TUPLE
+//#define PRINT_TUPLE
 
 uint32_t inputs[TESTCASE_SIZE];
 void generate_random_inputs()
@@ -35,30 +35,40 @@ int abort_error = 0;
 #include<tupleindexer/sorter/sorter.h>
 #include<tupleindexer/linked_page_list/linked_page_list.h>
 
-#define N_WAY_MERGE 100
-#define MERGE_THREAD_POOL_SIZE 2
+#define N_WAY_MERGE 50
+#define MERGE_THREAD_POOL_SIZE 3
 
-pthread_mutex_t sorter_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t fl = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t fc = PTHREAD_COND_INITIALIZER;
+int finished = 0;
+
 void lock(void* sorter_lock)
 {
-	pthread_mutex_lock(sorter_lock);
+	pthread_mutex_lock(&fl);
 }
-void unlock(void* sorter_lock)
+void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uint64_t sorted_runs_count)
 {
-	pthread_mutex_unlock(sorter_lock);
+	if(pushed_count > 0 && sorted_runs_count > 1)
+		pthread_cond_signal(&fc);
+	pthread_mutex_unlock(&fl);
 }
 
-volatile int finished_insertion = 0;
 void* merge_runs(void* sh_vp)
 {
 	sorter_handle* sh_p = sh_vp;
 
 	while(1)
 	{
-		volatile int finished_local = finished_insertion;
-		volatile int merged = merge_N_runs_in_sorter(sh_p, N_WAY_MERGE, transaction_id, &abort_error);
-		if(merged == 0 && finished_local == 1)
+		int merged = merge_N_runs_in_sorter(sh_p, N_WAY_MERGE, transaction_id, &abort_error);
+
+		pthread_mutex_lock(&fl);
+		if(finished)
+		{
+			pthread_mutex_unlock(&fl);
 			break;
+		}
+		pthread_cond_wait(&fc, &fl);
+		pthread_mutex_unlock(&fl);
 	}
 
 	return NULL;
@@ -75,7 +85,7 @@ void main1()
 		exit(-1);
 	}
 
-	sorter_handle sh = get_new_sorter((sorter_locker){&sorter_lock, lock, unlock}, &stdef, &pam, &pmm, transaction_id, &abort_error);
+	sorter_handle sh = get_new_sorter((sorter_locker){NULL, lock, unlock}, &stdef, &pam, &pmm, transaction_id, &abort_error);
 
 	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
 	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
@@ -94,14 +104,18 @@ void main1()
 		}
 	}
 	insert_in_sorter(&sh, NULL, transaction_id, &abort_error);
-
-	// mark insertions completed
-	finished_insertion = 1;
+	pthread_mutex_lock(&fl);
+	finished = 1;
+	pthread_cond_broadcast(&fc);
+	pthread_mutex_unlock(&fl);
 
 	// wait for all mergeing threads to return
 	shutdown_executor(thread_pool, 0);
 	wait_for_all_executor_workers_to_complete(thread_pool);
 	delete_executor(thread_pool);
+
+	// final merges
+	while(merge_N_runs_in_sorter(&sh, N_WAY_MERGE, transaction_id, &abort_error) == 1);
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
