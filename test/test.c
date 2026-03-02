@@ -62,9 +62,12 @@ void* merge_runs(void* sh_vp)
 {
 	sorter_handle* sh_p = sh_vp;
 
+	int merges = 0;
+
 	while(1)
 	{
 		int merged = merge_N_runs_in_sorter(sh_p, N_WAY_MERGE, transaction_id, &abort_error);
+		merges += merged;
 
 		pthread_mutex_lock(&fl);
 		if(finished)
@@ -75,6 +78,8 @@ void* merge_runs(void* sh_vp)
 		pthread_cond_wait(&fc, &fl);
 		pthread_mutex_unlock(&fl);
 	}
+
+	printf("some thread merged %d sets of runs\n", merges);
 
 	return NULL;
 }
@@ -120,7 +125,10 @@ void main1()
 	delete_executor(thread_pool);
 
 	// final merges
-	while(merge_N_runs_in_sorter(&sh, N_WAY_MERGE, transaction_id, &abort_error) == 1);
+	int merges = 0;
+	while(merge_N_runs_in_sorter(&sh, N_WAY_MERGE, transaction_id, &abort_error) == 1)
+		merges++;
+	printf("main thread merged %d sets of runs\n", merges);
 
 	// destroy sorter and extract the sorted values
 	uint64_t sorted_data;
