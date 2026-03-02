@@ -41,15 +41,20 @@ int abort_error = 0;
 pthread_mutex_t fl = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t fc = PTHREAD_COND_INITIALIZER;
 int finished = 0;
-
+uint64_t unaccounted_runs = 0;
 void lock(void* sorter_lock)
 {
 	pthread_mutex_lock(&fl);
 }
 void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uint64_t sorted_runs_count)
 {
-	if(pushed_count > 0 && sorted_runs_count > 1)
+	if(pushed_count > 0)
+		unaccounted_runs += pushed_count;
+	if(pushed_count > 0 && unaccounted_runs > 1)
+	{
+		unaccounted_runs -= min(N_WAY_MERGE, unaccounted_runs);
 		pthread_cond_signal(&fc);
+	}
 	pthread_mutex_unlock(&fl);
 }
 
