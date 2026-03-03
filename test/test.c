@@ -10,9 +10,9 @@
 
 volatile_page_store vps;
 
-#define PAGE_SIZE (4 * 4096)
+#define PAGE_SIZE (2 * 4096)
 #define PAGE_ID_WIDTH 4
-#define TRUNCATOR_PERIOD_US (20 * 1000000)
+#define TRUNCATOR_PERIOD_US (30 * 1000000)
 
 #define TESTCASE_SIZE 1000000
 
@@ -35,18 +35,19 @@ int abort_error = 0;
 #include<tupleindexer/sorter/sorter.h>
 #include<tupleindexer/linked_page_list/linked_page_list.h>
 
-#define N_WAY_MERGE 40
+#define N_WAY_MERGE 30
 #define MERGE_THREAD_POOL_SIZE 4
 
 pthread_mutex_t fl = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t fc = PTHREAD_COND_INITIALIZER;
 int finished = 0;
 uint64_t unaccounted_runs = 0;
+uint64_t sorted_runs_count = 0;
 void lock(void* sorter_lock)
 {
 	pthread_mutex_lock(&fl);
 }
-void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uint64_t sorted_runs_count)
+void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uint64_t _sorted_runs_count)
 {
 	if(pushed_count > 0)
 		unaccounted_runs += pushed_count;
@@ -55,6 +56,7 @@ void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uin
 		unaccounted_runs -= min(N_WAY_MERGE, unaccounted_runs);
 		pthread_cond_signal(&fc);
 	}
+	sorted_runs_count = _sorted_runs_count;
 	pthread_mutex_unlock(&fl);
 }
 
@@ -70,12 +72,13 @@ void* merge_runs(void* sh_vp)
 		merges += merged;
 
 		pthread_mutex_lock(&fl);
-		if(finished)
+		if(finished && sorted_runs_count < N_WAY_MERGE)
 		{
 			pthread_mutex_unlock(&fl);
 			break;
 		}
-		pthread_cond_wait(&fc, &fl);
+		if(sorted_runs_count < N_WAY_MERGE)
+			pthread_cond_wait(&fc, &fl);
 		pthread_mutex_unlock(&fl);
 	}
 
