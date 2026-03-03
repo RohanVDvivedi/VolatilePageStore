@@ -108,6 +108,9 @@ void main1()
 	}
 	insert_in_sorter(&sh, NULL, transaction_id, &abort_error);
 
+	// NOTE
+	// if you start merging the runs only after the inserts are completed, there is massive performance gains
+
 	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
 	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
 		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
