@@ -41,7 +41,6 @@ int abort_error = 0;
 pthread_mutex_t fl = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t fc = PTHREAD_COND_INITIALIZER;
 int finished = 0;
-uint64_t unaccounted_runs = 0;
 uint64_t sorted_runs_count = 0;
 void lock(void* sorter_lock)
 {
@@ -49,14 +48,9 @@ void lock(void* sorter_lock)
 }
 void unlock(void* sorter_lock, uint32_t pushed_count, uint32_t popped_count, uint64_t _sorted_runs_count)
 {
-	if(pushed_count > 0)
-		unaccounted_runs += pushed_count;
-	if(pushed_count > 0 && unaccounted_runs >= N_WAY_MERGE)
-	{
-		unaccounted_runs -= min(N_WAY_MERGE, unaccounted_runs);
-		pthread_cond_signal(&fc);
-	}
 	sorted_runs_count = _sorted_runs_count;
+	if(pushed_count > 0 && sorted_runs_count > 1)
+		pthread_cond_broadcast(&fc);
 	pthread_mutex_unlock(&fl);
 }
 
@@ -100,10 +94,6 @@ void main1()
 
 	sorter_handle sh = get_new_sorter((sorter_locker){NULL, lock, unlock}, &stdef, &pam, &pmm, transaction_id, &abort_error);
 
-	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
-	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
-		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
-
 	// perform random 1000,000 inserts
 	printf("\n\nPERFORMING INSERTS\n\n");
 	for(int i = 0; i < TESTCASE_SIZE; i++)
@@ -117,6 +107,11 @@ void main1()
 		}
 	}
 	insert_in_sorter(&sh, NULL, transaction_id, &abort_error);
+
+	executor* thread_pool = new_executor(FIXED_THREAD_COUNT_EXECUTOR, MERGE_THREAD_POOL_SIZE, MERGE_THREAD_POOL_SIZE * 2, 0, NULL, NULL, NULL, 0);
+	for(int i = 0; i < MERGE_THREAD_POOL_SIZE; i++)
+		submit_job_executor(thread_pool, merge_runs, &sh, NULL, NULL, BLOCKING);
+
 	pthread_mutex_lock(&fl);
 	finished = 1;
 	pthread_cond_broadcast(&fc);
