@@ -37,25 +37,25 @@ static void perform_truncation(volatile_page_store* vps)
 			// grab the free space mapper page and page_id, if not already mmaped
 			if(free_space_mapper_page == NULL)
 			{
-				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
+				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
 				free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 			}
 			else
 			{
 				// we need to meddle only if the free_space_mapper_page that is mapped is not the right one
-				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page(page_id, &(vps->stats)))
+				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats)))
 				{
 					// unmap the old one and map the new one
 					release_page(&(vps->pool), free_space_mapper_page);
 
-					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
+					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
 					free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 				}
 			}
 
 			// mark the page_id as free in free space map
 			{
-				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page(page_id, &(vps->stats));
+				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page_vps(page_id, &(vps->stats));
 				if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos) != 1) // this may never happen, we are just ensuring that the page being freed is indeed allocated
 				{
 					printf("ISSUEv :: bug in page being freed from free pages list, before truncation, page in free pages list is not marked allocated\n");
@@ -85,7 +85,7 @@ static void perform_truncation(volatile_page_store* vps)
 			page_id = new_active_page_count - 1;
 
 			// we can directly truncate a trailing free space mapper page
-			if(is_free_space_mapper_page(page_id, &(vps->stats)))
+			if(is_free_space_mapper_page_vps(page_id, &(vps->stats)))
 			{
 				new_active_page_count--;
 				continue;
@@ -94,25 +94,25 @@ static void perform_truncation(volatile_page_store* vps)
 			// grab the free space mapper page and page_id, if not already mmaped
 			if(free_space_mapper_page == NULL)
 			{
-				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
+				free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
 				free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 			}
 			else
 			{
 				// we need to meddle only if the free_space_mapper_page that is mapped is not the right one
-				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page(page_id, &(vps->stats)))
+				if(free_space_mapper_page_id != get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats)))
 				{
 					// unmap the old one and map the new one
 					release_page(&(vps->pool), free_space_mapper_page);
 
-					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page(page_id, &(vps->stats));
+					free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
 					free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 				}
 			}
 
 			// if the corresponding allocation bit is set, then break out
 			{
-				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page(page_id, &(vps->stats));
+				uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page_vps(page_id, &(vps->stats));
 				if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos))
 					break;
 			}

@@ -30,7 +30,7 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* page_id)
 {
 	// we are calling a free spacemapper page and group of pages following it an extent for the context of this function
-	const uint64_t data_pages_per_extent = is_valid_bits_count_on_free_space_mapper_page(&(vps->stats));
+	const uint64_t data_pages_per_extent = is_valid_bits_count_on_free_space_mapper_page_vps(&(vps->stats));
 	const uint64_t total_pages_per_extent = data_pages_per_extent + 1;
 
 	uint64_t free_space_mapper_page_id = 0;
@@ -91,12 +91,12 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 
 	void* page = NULL;
 
-	if(!is_free_space_mapper_page(vps->active_page_count, &(vps->stats)))
+	if(!is_free_space_mapper_page_vps(vps->active_page_count, &(vps->stats)))
 	{
 		(*page_id) = vps->active_page_count;
 
 		// first grab latch on the free space mapper page
-		free_space_mapper_page_id = get_is_valid_bit_page_id_for_page((*page_id), &(vps->stats));
+		free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps((*page_id), &(vps->stats));
 		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
 
 		(*page_id) = ((vps->active_page_count)++);
@@ -137,7 +137,7 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 
 	// perform the actual allocation
 	{
-		uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page((*page_id), &(vps->stats));
+		uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page_vps((*page_id), &(vps->stats));
 		if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos) != 0) // this may never happen, we are just ensuring that the page being allocated is free
 		{
 			printf("ISSUEv :: bug in page allocation or new page initialization, page attempting to be allocated is not marked free\n");
@@ -189,7 +189,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 {
 	// page_id must not be a free space mapper page
-	if(is_free_space_mapper_page(page_id, &(vps->stats)))
+	if(is_free_space_mapper_page_vps(page_id, &(vps->stats)))
 	{
 		printf("ISSUEv :: user accessing free space mapper page\n");
 		exit(-1);
@@ -243,7 +243,7 @@ void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 {
 	// page_id must not be a free space mapper page
-	if(is_free_space_mapper_page(page_id, &(vps->stats)))
+	if(is_free_space_mapper_page_vps(page_id, &(vps->stats)))
 	{
 		printf("ISSUEv :: user freeing free space mapper page\n");
 		exit(-1);
