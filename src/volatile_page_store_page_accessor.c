@@ -19,8 +19,8 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 
 	// else remove and allocate the first page
 	(*page_id) = vps->free_pages_list_head_page_id;
-	mark_allocated_in_free_space_bitmap_page(vps, (*page_id));
-	return remove_from_free_pages_list(vps, (*page_id));
+	mark_allocated_in_free_space_bitmap_page_vps(vps, (*page_id));
+	return remove_from_free_pages_list_vps(vps, (*page_id));
 }
 
 static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page_id)
@@ -43,7 +43,7 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 			}
 		}
 
-		mark_allocated_in_free_space_bitmap_page(vps, (*page_id));
+		mark_allocated_in_free_space_bitmap_page_vps(vps, (*page_id));
 
 		return acquire_page(&(vps->pool), (*page_id));
 	}
@@ -73,7 +73,7 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 			release_page(&(vps->pool), free_space_mapper_page);
 		}
 
-		mark_allocated_in_free_space_bitmap_page(vps, (*page_id));
+		mark_allocated_in_free_space_bitmap_page_vps(vps, (*page_id));
 
 		return acquire_page(&(vps->pool), (*page_id));
 	}
@@ -151,8 +151,8 @@ void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 
 		// put this page in the head of the free_pages_list
 		{
-			insert_in_free_pages_list(vps, page_id, page);
-			mark_free_in_free_space_bitmap_page(vps, page_id);
+			insert_in_free_pages_list_vps(vps, page_id, page);
+			mark_free_in_free_space_bitmap_page_vps(vps, page_id);
 		}
 	}
 
@@ -175,8 +175,8 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 			// get the page
 			void* page = acquire_page(&(vps->pool), page_id);
 
-			insert_in_free_pages_list(vps, page_id, page);
-			mark_free_in_free_space_bitmap_page(vps, page_id);
+			insert_in_free_pages_list_vps(vps, page_id, page);
+			mark_free_in_free_space_bitmap_page_vps(vps, page_id);
 
 		pthread_mutex_unlock(&(vps->global_lock));
 	}

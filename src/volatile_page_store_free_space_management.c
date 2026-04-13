@@ -93,3 +93,18 @@ void mark_allocated_in_free_space_bitmap_page(volatile_page_store* vps, uint64_t
 
 	release_page(&(vps->pool), free_space_mapper_page);
 }
+
+int is_free_page_vps(volatile_page_store* vps, uint64_t page_id)
+{
+	uint64_t free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
+	void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
+
+	uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page_vps(page_id, &(vps->stats));
+
+	// it is free, if this bit is 0
+	int is_free = (get_bit(free_space_mapper_page, free_space_mapper_bit_pos) == 0);
+
+	release_page(&(vps->pool), free_space_mapper_page);
+
+	return is_free;
+}
