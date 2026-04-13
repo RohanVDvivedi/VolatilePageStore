@@ -4,63 +4,12 @@
 
 #include<volatilepagestore/system_page_header_util.h>
 
+#include<volatilepagestore/volatile_page_store_free_space_management.h>
+
 #include<cutlery/bitmap.h>
 
 #include<stdlib.h>
 #include<stdio.h>
-
-typedef struct free_list_vps_node free_list_vps_node;
-struct free_list_vps_node
-{
-	uint64_t prev_page_id;
-	uint64_t next_page_id;
-};
-
-static void insert_in_free_pages_list(volatile_page_store* vps, uint64_t page_id, void* page)
-{
-	// initialize the node on the page
-	free_list_vps_node* page_node = page;
-	page_node->prev_page_id = vps->user_stats.NULL_PAGE_ID;
-	page_node->next_page_id = vps->user_stats.NULL_PAGE_ID;
-
-	// insert it at head
-	if(vps->free_pages_list_head_page_id != vps->user_stats.NULL_PAGE_ID) // if the head_page exists, make it's previous point to this new page
-	{
-		free_list_vps_node* head_page_node = acquire_page(&(vps->pool), vps->free_pages_list_head_page_id);
-		head_page_node->prev_page_id = page_id;
-		release_page(&(vps->pool), head_page_node);
-	}
-	page_node->next_page_id = vps->free_pages_list_head_page_id;
-
-	vps->free_pages_list_head_page_id = page_id;
-
-	release_page(&(vps->pool), page_node);
-}
-
-static void* remove_from_free_pages_list(volatile_page_store* vps, uint64_t page_id)
-{
-	free_list_vps_node* page_node = acquire_page(&(vps->pool), page_id);
-
-	if(page_node->prev_page_id != vps->user_stats.NULL_PAGE_ID) // if a prev_page exists, re position its next
-	{
-		free_list_vps_node* prev_page_node = acquire_page(&(vps->pool), page_node->prev_page_id);
-		prev_page_node->next_page_id = page_node->next_page_id;
-		release_page(&(vps->pool), prev_page_node);
-	}
-
-	if(page_node->next_page_id != vps->user_stats.NULL_PAGE_ID) // if a next_page exists, re position its next
-	{
-		free_list_vps_node* next_page_node = acquire_page(&(vps->pool), page_node->next_page_id);
-		prev_page_node->prev_page_id = page_node->prev_page_id;
-		release_page(&(vps->pool), next_page_node);
-	}
-
-	// redundant but we will initialize its next and prev page_ids
-	page_node->prev_page_id = vps->user_stats.NULL_PAGE_ID;
-	page_node->next_page_id = vps->user_stats.NULL_PAGE_ID;
-
-	return page_node;
-}
 
 static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id)
 {
@@ -68,69 +17,10 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 	if(vps->free_pages_list_head_page_id == vps->user_stats.NULL_PAGE_ID)
 		return NULL;
 
-	// set the page_id to be returned
+	// else remove and allocate the first page
 	(*page_id) = vps->free_pages_list_head_page_id;
-
-	// get the page
-	void* page = acquire_page(&(vps->pool), (*page_id));
-
-	// remove page from the head of the free_pages_list
-	vps->free_pages_list_head_page_id = deserialize_uint64(page, vps->stats.page_id_width);
-
-	return page;
-}
-
-static void* allocate_from_free_space_map(volatile_page_store* vps, uint64_t* page_id)
-{
-	// we are calling a free spacemapper page and group of pages following it an extent for the context of this function
-	const uint64_t data_pages_per_extent = is_valid_bits_count_on_free_space_mapper_page_vps(&(vps->stats));
-	const uint64_t total_pages_per_extent = data_pages_per_extent + 1;
-
-	uint64_t free_space_mapper_page_id = 0;
-	while(free_space_mapper_page_id < vps->active_page_count)
-	{
-		{
-			// get free space mapper page that we interested in
-			void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
-
-			uint64_t free_space_mapper_bit_index = 0;
-			while(free_space_mapper_bit_index < data_pages_per_extent)
-			{
-				// calculate respective page_id, and ensure that it does not overflow
-				if(will_unsigned_sum_overflow(uint64_t, free_space_mapper_page_id, (free_space_mapper_bit_index + 1)))
-					break;
-				(*page_id) = free_space_mapper_page_id + (free_space_mapper_bit_index + 1);
-				if((*page_id) >= vps->active_page_count)
-					break;
-
-				// if the free_space_mapper_bit_index is set, continue
-				if(get_bit(free_space_mapper_page, free_space_mapper_bit_index))
-				{
-					free_space_mapper_bit_index++;
-					continue;
-				}
-
-				// else we allocate it, by just setting the bit
-				set_bit(free_space_mapper_page, free_space_mapper_bit_index);
-
-				// release free space mapper page
-				release_page(&(vps->pool), free_space_mapper_page);
-
-				// grab the page we just allocated and return
-				return acquire_page(&(vps->pool), (*page_id));
-			}
-
-			// return free space mapper page back using munmap
-			release_page(&(vps->pool), free_space_mapper_page);
-		}
-
-		// check for overflow and increment
-		if(will_unsigned_sum_overflow(uint64_t, free_space_mapper_page_id, total_pages_per_extent))
-			break;
-		free_space_mapper_page_id += total_pages_per_extent;
-	}
-
-	return NULL;
+	mark_allocated_in_free_space_bitmap_page(vps, (*page_id));
+	return remove_from_free_pages_list(vps, (*page_id));
 }
 
 static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page_id)
@@ -139,20 +29,10 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 	if(vps->active_page_count == vps->user_stats.max_page_count)
 		return NULL;
 
-	void* free_space_mapper_page = NULL;
-	uint64_t free_space_mapper_page_id;
-
-	void* page = NULL;
-
 	if(!is_free_space_mapper_page_vps(vps->active_page_count, &(vps->stats)))
 	{
-		(*page_id) = vps->active_page_count;
+		(*page_id) = (vps->active_page_count)++;
 
-		// first grab latch on the free space mapper page
-		free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps((*page_id), &(vps->stats));
-		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
-
-		(*page_id) = ((vps->active_page_count)++);
 		// expand the file
 		{
 			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
@@ -163,7 +43,9 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 			}
 		}
 
-		page = acquire_page(&(vps->pool), *(page_id));
+		mark_allocated_in_free_space_bitmap_page(vps, (*page_id));
+
+		return acquire_page(&(vps->pool), (*page_id));
 	}
 	else // if next new page is a free space mapper page, then create 2 instead of 1
 	{
@@ -171,8 +53,9 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 		if(vps->user_stats.max_page_count - vps->active_page_count < 2)
 			return NULL;
 
-		free_space_mapper_page_id = ((vps->active_page_count)++);
-		(*page_id) = ((vps->active_page_count)++);
+		uint64_t free_space_mapper_page_id = (vps->active_page_count)++;
+		(*page_id) = (vps->active_page_count)++;
+
 		// expand the file
 		{
 			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
@@ -183,26 +66,17 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 			}
 		}
 
-		free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
-		memory_set(free_space_mapper_page, 0, vps->stats.page_size);
-		page = acquire_page(&(vps->pool), (*page_id));
-	}
-
-	// perform the actual allocation
-	{
-		uint64_t free_space_mapper_bit_pos = get_is_valid_bit_position_for_page_vps((*page_id), &(vps->stats));
-		if(get_bit(free_space_mapper_page, free_space_mapper_bit_pos) != 0) // this may never happen, we are just ensuring that the page being allocated is free
+		// must 0 initialize free space mapper page
 		{
-			printf("ISSUEv :: bug in page allocation or new page initialization, page attempting to be allocated is not marked free\n");
-			exit(-1);
+			void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
+			memory_set(free_space_mapper_page, 0, vps->stats.page_size);
+			release_page(&(vps->pool), free_space_mapper_page);
 		}
-		set_bit(free_space_mapper_page, free_space_mapper_bit_pos);
+
+		mark_allocated_in_free_space_bitmap_page(vps, (*page_id));
+
+		return acquire_page(&(vps->pool), (*page_id));
 	}
-
-	// return free space mapper page back using munmap
-	release_page(&(vps->pool), free_space_mapper_page);
-
-	return page;
 }
 
 void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
@@ -217,12 +91,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 		if(page != NULL)
 			goto EXIT;
 
-		// strategy 2 :: allocate a new one from the free space map
-		page = allocate_from_free_space_map(vps, page_id);
-		if(page != NULL)
-			goto EXIT;
-
-		// strategy 3 :: extend the file and allocate a brand new one
+		// strategy 2 :: extend the file and allocate a brand new one
 		page = allocate_by_extending_file(vps, page_id);
 		if(page != NULL)
 			goto EXIT;
@@ -282,11 +151,8 @@ void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 
 		// put this page in the head of the free_pages_list
 		{
-			// link this page into the free_pages_list
-			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
-			vps->free_pages_list_head_page_id = page_id;
-
-			release_page(&(vps->pool), page);
+			insert_in_free_pages_list(vps, page_id, page);
+			mark_free_in_free_space_bitmap_page(vps, page_id);
 		}
 	}
 
@@ -309,11 +175,8 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 			// get the page
 			void* page = acquire_page(&(vps->pool), page_id);
 
-			// link this page into the free_pages_list
-			serialize_uint64(page, vps->stats.page_id_width, vps->free_pages_list_head_page_id);
-			vps->free_pages_list_head_page_id = page_id;
-
-			release_page(&(vps->pool), page);
+			insert_in_free_pages_list(vps, page_id, page);
+			mark_free_in_free_space_bitmap_page(vps, page_id);
 
 		pthread_mutex_unlock(&(vps->global_lock));
 	}
