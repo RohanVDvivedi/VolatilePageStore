@@ -55,6 +55,9 @@ void* remove_from_free_pages_list_vps(volatile_page_store* vps, uint64_t page_id
 		release_page(&(vps->pool), next_page_node);
 	}
 
+	if(vps->free_pages_list_head_page_id == page_id)
+		vps->free_pages_list_head_page_id = page_node->next_page_id;
+
 	// redundant but we will initialize its next and prev page_ids
 	page_node->prev_page_id = vps->user_stats.NULL_PAGE_ID;
 	page_node->next_page_id = vps->user_stats.NULL_PAGE_ID;

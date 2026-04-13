@@ -152,6 +152,7 @@ void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 		// put this page in the head of the free_pages_list
 		{
 			insert_in_free_pages_list_vps(vps, page_id, page);
+
 			mark_free_in_free_space_bitmap_page_vps(vps, page_id);
 		}
 	}
@@ -176,6 +177,7 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 			void* page = acquire_page(&(vps->pool), page_id);
 
 			insert_in_free_pages_list_vps(vps, page_id, page);
+
 			mark_free_in_free_space_bitmap_page_vps(vps, page_id);
 
 		pthread_mutex_unlock(&(vps->global_lock));
