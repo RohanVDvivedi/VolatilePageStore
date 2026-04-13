@@ -16,7 +16,7 @@ struct free_list_vps_node
 	uint64_t next_page_id;
 };
 
-void insert_in_free_pages_list(volatile_page_store* vps, uint64_t page_id, void* page)
+void insert_in_free_pages_list_vps(volatile_page_store* vps, uint64_t page_id, void* page)
 {
 	// initialize the node on the page
 	free_list_vps_node* page_node = page;
@@ -37,7 +37,7 @@ void insert_in_free_pages_list(volatile_page_store* vps, uint64_t page_id, void*
 	release_page(&(vps->pool), page_node);
 }
 
-void* remove_from_free_pages_list(volatile_page_store* vps, uint64_t page_id)
+void* remove_from_free_pages_list_vps(volatile_page_store* vps, uint64_t page_id)
 {
 	free_list_vps_node* page_node = acquire_page(&(vps->pool), page_id);
 
@@ -62,7 +62,7 @@ void* remove_from_free_pages_list(volatile_page_store* vps, uint64_t page_id)
 	return page_node;
 }
 
-void mark_free_in_free_space_bitmap_page(volatile_page_store* vps, uint64_t page_id)
+void mark_free_in_free_space_bitmap_page_vps(volatile_page_store* vps, uint64_t page_id)
 {
 	uint64_t free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
 	void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
@@ -78,7 +78,7 @@ void mark_free_in_free_space_bitmap_page(volatile_page_store* vps, uint64_t page
 	release_page(&(vps->pool), free_space_mapper_page);
 }
 
-void mark_allocated_in_free_space_bitmap_page(volatile_page_store* vps, uint64_t page_id)
+void mark_allocated_in_free_space_bitmap_page_vps(volatile_page_store* vps, uint64_t page_id)
 {
 	uint64_t free_space_mapper_page_id = get_is_valid_bit_page_id_for_page_vps(page_id, &(vps->stats));
 	void* free_space_mapper_page = acquire_page(&(vps->pool), free_space_mapper_page_id);
