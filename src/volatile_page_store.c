@@ -12,6 +12,7 @@
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
 	vps->active_page_count = 0;
+	vps->total_page_count = 0;
 
 	if(page_size % sysconf(_SC_PAGESIZE) != 0) // page_size must be multiple of OS page size
 		return 0;

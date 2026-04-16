@@ -23,7 +23,18 @@ static void* allocate_from_free_list(volatile_page_store* vps, uint64_t* page_id
 	return remove_from_free_pages_list_vps(vps, (*page_id));
 }
 
-static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page_id)
+static void extend_temp_file(volatile_page_store* vps)
+{
+	vps->total_page_count += MMAP_GROUP_SIZE;
+	uint64_t block_count = vps->total_page_count * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
+	if(!truncate_block_file(&(vps->temp_file), block_count))
+	{
+		printf("ISSUEv :: could not expand the file\n");
+		exit(-1);
+	}
+}
+
+static void* allocate_from_inactive_pages(volatile_page_store* vps, uint64_t* page_id)
 {
 	// if out of pages, fail
 	if(vps->active_page_count == vps->user_stats.max_page_count)
@@ -31,17 +42,9 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 
 	if(!is_free_space_mapper_page_vps(vps->active_page_count, &(vps->stats)))
 	{
+		if(vps->active_page_count == vps->total_page_count)
+			extend_temp_file(vps);
 		(*page_id) = (vps->active_page_count)++;
-
-		// expand the file
-		{
-			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
-			if(!truncate_block_file(&(vps->temp_file), block_count))
-			{
-				printf("ISSUEv :: could not expand the file\n");
-				exit(-1);
-			}
-		}
 
 		mark_allocated_in_free_space_bitmap_page_vps(vps, (*page_id));
 
@@ -53,18 +56,13 @@ static void* allocate_by_extending_file(volatile_page_store* vps, uint64_t* page
 		if(vps->user_stats.max_page_count - vps->active_page_count < 2)
 			return NULL;
 
+		if(vps->active_page_count == vps->total_page_count)
+			extend_temp_file(vps);
 		uint64_t free_space_mapper_page_id = (vps->active_page_count)++;
-		(*page_id) = (vps->active_page_count)++;
 
-		// expand the file
-		{
-			uint64_t block_count = (vps->active_page_count) * (vps->stats.page_size / get_block_size_for_block_file(&(vps->temp_file)));
-			if(!truncate_block_file(&(vps->temp_file), block_count))
-			{
-				printf("ISSUEv :: could not expand the file\n");
-				exit(-1);
-			}
-		}
+		if(vps->active_page_count == vps->total_page_count)
+			extend_temp_file(vps);
+		(*page_id) = (vps->active_page_count)++;
 
 		// must 0 initialize free space mapper page
 		{
@@ -92,7 +90,7 @@ void* get_new_page_for_vps(volatile_page_store* vps, uint64_t* page_id)
 			goto EXIT;
 
 		// strategy 2 :: extend the file and allocate a brand new one
-		page = allocate_by_extending_file(vps, page_id);
+		page = allocate_from_inactive_pages(vps, page_id);
 		if(page != NULL)
 			goto EXIT;
 	}
@@ -121,7 +119,7 @@ void* acquire_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 
 		if(page_id >= vps->active_page_count)
 		{
-			printf("ISSUEv :: user accessing an out of bounds page_id\n");
+			printf("ISSUEv :: user accessing an inactive page_id\n");
 			exit(-1);
 		}
 
@@ -149,6 +147,12 @@ void release_page_for_vps(volatile_page_store* vps, void* page, int free_page)
 			exit(-1);
 		}
 
+		if(page_id >= vps->active_page_count)
+		{
+			printf("ISSUEv :: user freeing/releasing inactive page\n");
+			exit(-1);
+		}
+
 		// put this page in the head of the free_pages_list
 		{
 			insert_in_free_pages_list_vps(vps, page_id, page);
@@ -172,6 +176,12 @@ void free_page_for_vps(volatile_page_store* vps, uint64_t page_id)
 	// put this page in the head of the free_pages_list
 	{
 		pthread_mutex_lock(&(vps->global_lock));
+
+			if(page_id >= vps->active_page_count)
+			{
+				printf("ISSUEv :: user freeing inactive page\n");
+				exit(-1);
+			}
 
 			// get the page
 			void* page = acquire_page(&(vps->pool), page_id);
