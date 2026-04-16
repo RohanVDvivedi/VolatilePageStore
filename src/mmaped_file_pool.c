@@ -152,6 +152,8 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 		// we never kept it in unreferenced_lru_list
 		fd->reference_counter = 1;
 
+		page_ptr = fd->map.frame + ((page_id - fd->map.first_page_id) * mfp->page_size);
+
 		goto EXIT;
 	}
 
