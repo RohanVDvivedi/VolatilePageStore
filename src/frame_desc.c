@@ -12,12 +12,12 @@ void initialize_empty_frame_desc(frame_desc* fd)
 
 #include<cutlery/cutlery_math.h>
 
-int compare_frame_desc_by_first_page_id(const void* pd1_p, const void* pd2_p)
+int vps_compare_frame_desc_by_first_page_id(const void* pd1_p, const void* pd2_p)
 {
 	return compare_numbers(((const frame_desc*)pd1_p)->map.first_page_id, ((const frame_desc*)pd2_p)->map.first_page_id);
 }
 
-int compare_frame_desc_by_frame_ptr(const void* pd1_p, const void* pd2_p)
+int vps_compare_frame_desc_by_frame_ptr(const void* pd1_p, const void* pd2_p)
 {
 	return compare_numbers( (cy_uint)(((const frame_desc*)pd1_p)->map.frame), (cy_uint)(((const frame_desc*)pd2_p)->map.frame) );
 }
