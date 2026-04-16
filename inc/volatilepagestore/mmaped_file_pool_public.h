@@ -4,10 +4,11 @@
 #include<blockio/block_io.h>
 
 #include<pthread.h>
-#include<cutlery/hashmap.h>
-#include<cutlery/linkedlist.h>
 
 #include<stdint.h>
+
+#include<cutlery/bst.h>
+#include<cutlery/linkedlist.h>
 
 // these many number of pages of the file will be mmaped and unmaped
 // this sized block will be ftruncated to append to the file
@@ -30,8 +31,8 @@ struct mmaped_file_pool
 	// each frame in this mmaped_file_pool is (MMAP_GROUP_SIZE * page_size) bytes big
 	// and contains MMAP_GROUP_SIZE pages
 
-	// hashtable => first page_id of the group (uint64_t) -> frame descriptor
-	hashmap first_page_id_to_frame_desc;
+	// bst => first_page_id (uint64_t) -> frame descriptor
+	bst first_page_id_to_frame_desc;
 
 	// bst => frame (void*) -> frame descriptor
 	bst frame_ptr_to_frame_desc;

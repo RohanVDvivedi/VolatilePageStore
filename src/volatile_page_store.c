@@ -44,7 +44,7 @@ int initialize_volatile_page_store(volatile_page_store* vps, const char* directo
 
 	vps->free_pages_list_head_page_id = vps->user_stats.NULL_PAGE_ID;
 
-	if(!initialize_mmaped_file_pool(&(vps->pool), &(vps->global_lock), &(vps->temp_file), page_size, 1000))
+	if(!initialize_mmaped_file_pool(&(vps->pool), &(vps->global_lock), &(vps->temp_file), page_size))
 	{
 		pthread_mutex_destroy(&(vps->global_lock));
 		close_block_file(&(vps->temp_file));
