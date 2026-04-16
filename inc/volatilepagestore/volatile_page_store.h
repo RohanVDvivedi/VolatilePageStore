@@ -26,6 +26,15 @@ struct volatile_page_store
 
 	uint64_t active_page_count;
 
+	uint64_t total_page_count;
+
+	/*
+		There are total_page_count number of pages in the file
+		total_page_count will always be multiple of MMAP_GROUP_SIZE pages
+		temp_file shrinks and extends always in multiples of MMAP_GROUP_SIZE pages
+		all pages ith page_ids >= active_page_count and < total_page_count are alaways considered free, but will be exist in the free_pages_list_head_page_id
+	*/
+
 	// stats for internal use
 	volatile_page_store_stats stats;
 
