@@ -12,7 +12,7 @@
 
 // these many number of pages of the file will be mmaped and unmaped
 // this sized block will be ftruncated to append to the file
-#define MMAP_GROUP_SIZE 1000
+#define MMAP_GROUP_SIZE 10000
 
 typedef struct mmaped_file_pool mmaped_file_pool;
 struct mmaped_file_pool
