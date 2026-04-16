@@ -24,9 +24,9 @@ int initialize_mmaped_file_pool(mmaped_file_pool* mfp, pthread_mutex_t* external
 	mfp->page_size = page_size;
 	mfp->file = file;
 
-	initialize_bst(&(mfp->first_page_id_to_frame_desc), RED_BLACK_TREE, &simple_comparator(compare_frame_desc_by_first_page_id), offsetof(frame_desc, embed_node_first_page_id_to_frame_desc));
+	initialize_bst(&(mfp->first_page_id_to_frame_desc), RED_BLACK_TREE, &simple_comparator(vps_compare_frame_desc_by_first_page_id), offsetof(frame_desc, embed_node_first_page_id_to_frame_desc));
 
-	initialize_bst(&(mfp->frame_ptr_to_frame_desc), RED_BLACK_TREE, &simple_comparator(compare_frame_desc_by_frame_ptr), offsetof(frame_desc, embed_node_frame_ptr_to_frame_desc));
+	initialize_bst(&(mfp->frame_ptr_to_frame_desc), RED_BLACK_TREE, &simple_comparator(vps_compare_frame_desc_by_frame_ptr), offsetof(frame_desc, embed_node_frame_ptr_to_frame_desc));
 
 	initialize_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), offsetof(frame_desc, embed_node_unreferenced_lru_list));
 
