@@ -18,10 +18,8 @@ struct volatile_page_store
 	block_file temp_file;
 
 	// free list of data pages, linked by their page_id slot in the system page header
-	// all the pages present here in this list will still already be marked as allocated in their corresponding free space mapper pages,
-	// but inserting a new one here or removing one needs to be done with manager lock held
-	// this list just serves as a quick way to allocate and deallocate
-	// it must be accessed with manager_lock
+	// they also have they are also marked free in their free space mapper page
+	// this linkedlist allows quick allocation
 	uint64_t free_pages_list_head_page_id;
 
 	uint64_t active_page_count;

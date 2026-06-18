@@ -94,7 +94,7 @@ static void discard_all_unreferenced_frame_descs_UNSAFE(mmaped_file_pool* mfp)
 		remove_frame_desc(mfp, fd);
 
 		// munmap, if fails crash
-		if(munmap(fd->map.frame, mfp->page_size))
+		if(munmap(fd->map.frame, MMAP_GROUP_SIZE * mfp->page_size))
 		{
 			printf("ISSUEv :: munmap failed\n");
 			exit(-1);
@@ -196,6 +196,8 @@ int release_page(mmaped_file_pool* mfp, void* page_ptr)
 	if(fd->reference_counter == 0)
 		insert_tail_in_linkedlist(&(mfp->unreferenced_frame_descs_lru_lists), fd);
 
+	res = 1;
+
 	EXIT:;
 	if(mfp->has_internal_lock)
 		pthread_mutex_unlock(get_mmaped_file_pool_lock(mfp));
@@ -245,7 +247,7 @@ static void on_remove_all_from_first_page_id_to_frame_desc_bst_delete_frame_from
 	// this fd is already being removed from mfp->first_page_id_to_frame_desc
 	// so we only need to remove it from mfp->frame_ptr_to_frame_desc
 	remove_from_bst(&(mfp->frame_ptr_to_frame_desc), fd);
-	munmap(fd->map.frame, mfp->page_size);
+	munmap(fd->map.frame, MMAP_GROUP_SIZE * mfp->page_size);
 	free(fd);
 }
 
@@ -253,7 +255,7 @@ void deinitialize_mmaped_file_pool(mmaped_file_pool* mfp)
 {
 	discard_all_unreferenced_frame_descs_UNSAFE(mfp);
 
-	remove_all_from_bst(&(mfp->first_page_id_to_frame_desc), &((notifier_interface){NULL, on_remove_all_from_first_page_id_to_frame_desc_bst_delete_frame_from_mmaped_file_pool}));
+	remove_all_from_bst(&(mfp->first_page_id_to_frame_desc), &((notifier_interface){mfp, on_remove_all_from_first_page_id_to_frame_desc_bst_delete_frame_from_mmaped_file_pool}));
 
 	if(mfp->has_internal_lock)
 		pthread_mutex_destroy(&(mfp->internal_lock));
