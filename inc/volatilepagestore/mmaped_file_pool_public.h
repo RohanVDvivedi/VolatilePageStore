@@ -19,7 +19,7 @@ struct mmaped_file_pool
 {
 	block_file* file;
 
-	int has_internal_lock : 1;
+	unsigned int has_internal_lock : 1;
 	union
 	{
 		pthread_mutex_t* external_lock;
