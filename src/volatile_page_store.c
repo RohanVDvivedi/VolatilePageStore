@@ -3,6 +3,8 @@
 #include<volatilepagestore/mmaped_file_pool.h>
 #include<volatilepagestore/volatile_page_store_truncator.h>
 
+#include<tuplestore/page_layout.h>
+
 #include<posixutils/pthread_cond_utils.h>
 
 #include<stdio.h>
@@ -11,6 +13,10 @@
 
 int initialize_volatile_page_store(volatile_page_store* vps, const char* directory, uint32_t page_size, uint32_t page_id_width, uint64_t truncator_period_in_microseconds)
 {
+	// ensure that tuplestore approves the page_size for the volatilepagestore
+	if(!is_valid_page_size(page_size))
+		return 0;
+
 	vps->active_page_count = 0;
 	vps->total_page_count = 0;
 
