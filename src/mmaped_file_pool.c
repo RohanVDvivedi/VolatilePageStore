@@ -116,7 +116,7 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 	{
 		// mmap the page frame at its first_page_id
 		uint64_t first_page_id = UINT_ALIGN_DOWN(page_id, MMAP_GROUP_SIZE);
-		void* frame = mmap64(NULL, MMAP_GROUP_SIZE * mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_LOCKED, mfp->file->file_descriptor, first_page_id * mfp->page_size);
+		void* frame = mmap64(NULL, MMAP_GROUP_SIZE * mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, first_page_id * mfp->page_size);
 		if(frame == MAP_FAILED) // crash if mmap crashes
 		{
 			// MAP_FAILED possibly due to out of memory
@@ -125,7 +125,7 @@ void* acquire_page(mmaped_file_pool* mfp, uint64_t page_id)
 			discard_all_unreferenced_frame_descs_UNSAFE(mfp);
 
 			// and try again
-			frame = mmap64(NULL, MMAP_GROUP_SIZE * mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_LOCKED, mfp->file->file_descriptor, first_page_id * mfp->page_size);
+			frame = mmap64(NULL, MMAP_GROUP_SIZE * mfp->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, mfp->file->file_descriptor, first_page_id * mfp->page_size);
 
 			// still failure, means panic
 			if(frame == MAP_FAILED)
